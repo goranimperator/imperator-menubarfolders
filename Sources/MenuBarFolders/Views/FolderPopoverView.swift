@@ -106,23 +106,24 @@ struct FolderPopoverView: View {
     private func appCell(_ app: AppEntry) -> some View {
         let isHovered = hoveredApp == app.bundleIdentifier
         Button(action: { onOpenApp(app) }) {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Image(nsImage: app.icon)
                     .resizable()
                     .frame(width: 40, height: 40)
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                    .scaleEffect(isHovered ? 1.15 : 1.0)
                 Text(app.displayName)
                     .font(.system(size: 10))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .foregroundStyle(.primary.opacity(isHovered ? 1.0 : 0.7))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isHovered ? Color.primary.opacity(0.08) : Color.clear)
-            )
+            .contentShape(Rectangle())
+            .animation(.easeOut(duration: 0.12), value: isHovered)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.plain)
         .onHover { h in hoveredApp = h ? app.bundleIdentifier : nil }
     }
 }

@@ -133,10 +133,10 @@ struct FolderDetailView: View {
 
     @ViewBuilder
     private func appRow(_ app: AppEntry) -> some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(nsImage: app.icon)
                 .resizable()
-                .frame(width: 28, height: 28)
+                .frame(width: 40, height: 40)
 
             VStack(alignment: .leading, spacing: 2) {
                 if editingAppId == app.bundleIdentifier {
