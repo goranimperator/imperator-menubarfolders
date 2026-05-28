@@ -22,6 +22,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupMainMenu() {
         let mainMenu = NSMenu()
 
+        let appMenuItem = NSMenuItem(title: "App", action: nil, keyEquivalent: "")
+        appMenuItem.submenu = NSMenu()
+        mainMenu.addItem(appMenuItem)
+
         let editMenu = NSMenu(title: "Edit")
         editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
         editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")

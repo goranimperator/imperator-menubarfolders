@@ -14,14 +14,26 @@ struct FolderPopoverView: View {
     }
 
     private static let widthPerColumn: CGFloat = 80
+    private static let cellHeight: CGFloat = 68
+    private static let gridSpacing: CGFloat = 12
+    private static let gridPadding: CGFloat = 28
+    static let headerHeight: CGFloat = 34
+    static let footerHeight: CGFloat = 32
+    static let maxGridHeight: CGFloat = 300
 
     static func calculateGridHeight(appCount: Int, columns: Int) -> CGFloat {
+        guard appCount > 0 else { return 0 }
         let rowCount = Int(ceil(Double(appCount) / Double(columns)))
-        return CGFloat(rowCount) * 68 + CGFloat(max(rowCount - 1, 0)) * 12 + 28
+        return CGFloat(rowCount) * cellHeight + CGFloat(max(rowCount - 1, 0)) * gridSpacing + gridPadding
     }
 
     static func calculateWidth(columns: Int) -> CGFloat {
-        CGFloat(columns) * widthPerColumn + 28
+        CGFloat(columns) * widthPerColumn + gridPadding
+    }
+
+    static func calculateTotalHeight(appCount: Int, columns: Int) -> CGFloat {
+        let grid = min(calculateGridHeight(appCount: appCount, columns: columns), maxGridHeight)
+        return headerHeight + 1 + grid + 1 + footerHeight
     }
 
     var body: some View {

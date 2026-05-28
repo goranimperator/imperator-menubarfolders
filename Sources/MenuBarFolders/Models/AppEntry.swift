@@ -8,7 +8,10 @@ struct AppEntry: Identifiable, Codable, Hashable {
     var customName: String?
 
     var id: String { bundleIdentifier }
-    var displayName: String { customName?.isEmpty == false ? customName! : name }
+    var displayName: String {
+        if let custom = customName, !custom.isEmpty { return custom }
+        return name
+    }
     var url: URL { URL(fileURLWithPath: path) }
     var exists: Bool { FileManager.default.fileExists(atPath: path) }
 

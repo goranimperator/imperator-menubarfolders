@@ -97,7 +97,7 @@ class MenuBarManager {
 
         let cols = folder.columnsPerRow
         let gridHeight = FolderPopoverView.calculateGridHeight(appCount: folder.apps.count, columns: cols)
-        let totalHeight: CGFloat = 34 + 1 + min(gridHeight, 300) + 1 + 32
+        let totalHeight = FolderPopoverView.calculateTotalHeight(appCount: folder.apps.count, columns: cols)
         let totalWidth = FolderPopoverView.calculateWidth(columns: cols)
 
         let popoverView = FolderPopoverView(
