@@ -95,8 +95,14 @@ class MenuBarManager {
     private func showPopover(for folderID: UUID, relativeTo button: NSStatusBarButton) {
         guard let folder = store.folders.first(where: { $0.id == folderID }) else { return }
 
+        let cols = folder.columnsPerRow
+        let gridHeight = FolderPopoverView.calculateGridHeight(appCount: folder.apps.count, columns: cols)
+        let totalHeight: CGFloat = 34 + 1 + min(gridHeight, 300) + 1 + 32
+        let totalWidth = FolderPopoverView.calculateWidth(columns: cols)
+
         let popoverView = FolderPopoverView(
             folder: folder,
+            gridHeight: gridHeight,
             onOpenApp: { [weak self] app in
                 self?.closePopover(for: folderID)
                 NSWorkspace.shared.open(app.url)
@@ -109,9 +115,9 @@ class MenuBarManager {
                 NSApplication.shared.terminate(nil)
             }
         )
-
         let hostingController = NSHostingController(rootView: popoverView)
         let popover = NSPopover()
+        popover.contentSize = NSSize(width: totalWidth, height: totalHeight)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = hostingController

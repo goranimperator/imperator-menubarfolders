@@ -8,7 +8,10 @@ struct FolderDetailView: View {
     @State private var showAppPicker = false
     @State private var showIconPicker = false
     @State private var hoveredApp: String?
+    @State private var editingAppId: String?
+    @State private var editingAppName: String = ""
     @FocusState private var nameFieldFocused: Bool
+    @FocusState private var appNameFieldFocused: Bool
 
     private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
 
@@ -73,6 +76,24 @@ struct FolderDetailView: View {
 
             Spacer()
 
+            HStack(spacing: 4) {
+                Image(systemName: "square.grid.3x3")
+                    .font(.system(size: 13))
+                    .foregroundStyle(accentColor)
+                Picker("", selection: Binding(
+                    get: { folder.columnsPerRow },
+                    set: { store.updateColumns(for: folder, columns: $0) }
+                )) {
+                    ForEach(2...6, id: \.self) { n in
+                        Text("\(n)").tag(n)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 50)
+            }
+            .frame(height: 28)
+            .help("Columns per row")
+
             Button(action: { showAppPicker = true }) {
                 Label("Add Apps", systemImage: "plus")
                     .font(.system(size: 13))
@@ -118,8 +139,32 @@ struct FolderDetailView: View {
                 .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(app.name)
+                if editingAppId == app.bundleIdentifier {
+                    TextField("Label", text: $editingAppName, onCommit: {
+                        store.renameApp(in: folder, app: app, to: editingAppName)
+                        editingAppId = nil
+                    })
+                    .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13))
+                    .focused($appNameFieldFocused)
+                    .onAppear {
+                        appNameFieldFocused = true
+                    }
+                } else {
+                    HStack(spacing: 4) {
+                        Text(app.displayName)
+                            .font(.system(size: 13))
+                        if app.customName != nil {
+                            Text(app.name)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .onTapGesture(count: 2) {
+                        editingAppName = app.displayName
+                        editingAppId = app.bundleIdentifier
+                    }
+                }
                 if app.isMenuBarApp {
                     Text("Menu bar app")
                         .font(.system(size: 10))
@@ -140,6 +185,17 @@ struct FolderDetailView: View {
             }
 
             if hoveredApp == app.bundleIdentifier {
+                Button(action: {
+                    editingAppName = app.displayName
+                    editingAppId = app.bundleIdentifier
+                }) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Rename")
+
                 Button(action: {
                     store.removeApp(from: folder, app: app)
                 }) {

@@ -69,6 +69,19 @@ class FolderStore: ObservableObject {
         save()
     }
 
+    func renameApp(in folder: MenuBarFolder, app: AppEntry, to newName: String) {
+        guard let fIdx = folders.firstIndex(where: { $0.id == folder.id }),
+              let aIdx = folders[fIdx].apps.firstIndex(where: { $0.bundleIdentifier == app.bundleIdentifier }) else { return }
+        folders[fIdx].apps[aIdx].customName = newName.isEmpty ? nil : newName
+        save()
+    }
+
+    func updateColumns(for folder: MenuBarFolder, columns: Int) {
+        guard let idx = folders.firstIndex(where: { $0.id == folder.id }) else { return }
+        folders[idx].columnsPerRow = max(2, min(columns, 6))
+        save()
+    }
+
     func reorderFolders(from source: IndexSet, to destination: Int) {
         folders.move(fromOffsets: source, toOffset: destination)
         reindex()

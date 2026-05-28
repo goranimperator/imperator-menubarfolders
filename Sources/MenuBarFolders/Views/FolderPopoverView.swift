@@ -2,13 +2,27 @@ import SwiftUI
 
 struct FolderPopoverView: View {
     let folder: MenuBarFolder
+    let gridHeight: CGFloat
     let onOpenApp: (AppEntry) -> Void
     let onOpenSettings: () -> Void
     let onQuit: () -> Void
 
     @State private var hoveredApp: String?
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 8), count: folder.columnsPerRow)
+    }
+
+    private static let widthPerColumn: CGFloat = 80
+
+    static func calculateGridHeight(appCount: Int, columns: Int) -> CGFloat {
+        let rowCount = Int(ceil(Double(appCount) / Double(columns)))
+        return CGFloat(rowCount) * 68 + CGFloat(max(rowCount - 1, 0)) * 12 + 28
+    }
+
+    static func calculateWidth(columns: Int) -> CGFloat {
+        CGFloat(columns) * widthPerColumn + 28
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +63,7 @@ struct FolderPopoverView: View {
                     }
                     .padding(14)
                 }
-                .frame(maxHeight: 300)
+                .frame(height: min(gridHeight, 300))
             }
 
             Divider()
@@ -77,7 +91,7 @@ struct FolderPopoverView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
         }
-        .frame(width: 260)
+        .frame(width: FolderPopoverView.calculateWidth(columns: folder.columnsPerRow))
     }
 
     @ViewBuilder
@@ -88,7 +102,7 @@ struct FolderPopoverView: View {
                 Image(nsImage: app.icon)
                     .resizable()
                     .frame(width: 40, height: 40)
-                Text(app.name)
+                Text(app.displayName)
                     .font(.system(size: 10))
                     .lineLimit(1)
                     .truncationMode(.tail)

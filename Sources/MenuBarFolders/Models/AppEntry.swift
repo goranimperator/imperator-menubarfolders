@@ -5,8 +5,10 @@ struct AppEntry: Identifiable, Codable, Hashable {
     let name: String
     let path: String
     let isMenuBarApp: Bool
+    var customName: String?
 
     var id: String { bundleIdentifier }
+    var displayName: String { customName?.isEmpty == false ? customName! : name }
     var url: URL { URL(fileURLWithPath: path) }
     var exists: Bool { FileManager.default.fileExists(atPath: path) }
 
@@ -21,7 +23,7 @@ struct AppEntry: Identifiable, Codable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case bundleIdentifier, name, path, isMenuBarApp
+        case bundleIdentifier, name, path, isMenuBarApp, customName
     }
 
     static func == (lhs: AppEntry, rhs: AppEntry) -> Bool {
