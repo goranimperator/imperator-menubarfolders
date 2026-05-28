@@ -17,8 +17,8 @@ struct FolderPopoverView: View {
     private static let cellHeight: CGFloat = 68
     private static let gridSpacing: CGFloat = 12
     private static let gridPadding: CGFloat = 28
-    static let headerHeight: CGFloat = 34
-    static let footerHeight: CGFloat = 32
+    static let headerHeight: CGFloat = 40
+    static let footerHeight: CGFloat = 36
     static let maxGridHeight: CGFloat = 300
 
     static func calculateGridHeight(appCount: Int, columns: Int) -> CGFloat {
@@ -38,17 +38,17 @@ struct FolderPopoverView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(alignment: .center) {
                 if let img = folderPreviewIcon(folder, size: 14) {
                     Image(nsImage: img)
                         .frame(width: 14, height: 14)
                 }
                 Text(folder.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.headline)
                 Spacer()
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
@@ -81,27 +81,23 @@ struct FolderPopoverView: View {
             Divider()
 
             HStack {
-                Button(action: onOpenSettings) {
+                HoverButton(action: onOpenSettings) {
                     HStack(spacing: 4) {
                         Image(systemName: "gear")
                         Text("Settings")
                     }
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(.caption)
                 }
-                .buttonStyle(.borderless)
 
                 Spacer()
 
-                Button(action: onQuit) {
+                HoverButton(action: onQuit) {
                     Text("Quit")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
                 }
-                .buttonStyle(.borderless)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
         .frame(width: FolderPopoverView.calculateWidth(columns: folder.columnsPerRow))
     }
@@ -128,5 +124,22 @@ struct FolderPopoverView: View {
         }
         .buttonStyle(.borderless)
         .onHover { h in hoveredApp = h ? app.bundleIdentifier : nil }
+    }
+}
+
+struct HoverButton<Label: View>: View {
+    let action: () -> Void
+    @ViewBuilder let label: () -> Label
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            label()
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+        .opacity(isHovered ? 1.0 : 0.45)
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+        .onHover { isHovered = $0 }
     }
 }

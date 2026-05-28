@@ -29,9 +29,11 @@ enum LucideIcons {
     }
 
     static func statusBarImageFromSVG(_ svg: String, size: CGFloat = 18) -> NSImage? {
-        guard let elements = parseSVGString(svg) else { return nil }
-        let image = SVGRenderer.render(elements: elements, size: size, strokeWidth: 1.5 * (size / 24.0))
+        let normalized = svg.replacingOccurrences(of: "currentColor", with: "#000")
+        guard let data = normalized.data(using: .utf8),
+              let image = NSImage(data: data) else { return nil }
         image.isTemplate = true
+        image.size = NSSize(width: size, height: size)
         return image
     }
 

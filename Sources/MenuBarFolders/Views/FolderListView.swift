@@ -38,6 +38,7 @@ struct FolderListView: View {
 
     @ViewBuilder
     private func folderRow(_ folder: MenuBarFolder) -> some View {
+        let isSelected = selectedFolder?.id == folder.id
         HStack(spacing: 8) {
             if let img = folderPreviewIcon(folder, size: 16) {
                 Image(nsImage: img)
@@ -55,7 +56,7 @@ struct FolderListView: View {
 
             Text("\(folder.apps.count)")
                 .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
+                .foregroundColor(isSelected ? .white.opacity(0.7) : .gray)
 
             if hoveredFolder == folder.id {
                 Button(action: {
@@ -64,7 +65,7 @@ struct FolderListView: View {
                 }) {
                     Image(systemName: "trash")
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(isSelected ? .white : .gray)
                 }
                 .buttonStyle(.borderless)
             }

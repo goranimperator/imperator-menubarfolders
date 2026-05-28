@@ -17,6 +17,8 @@ struct ContentView: View {
                 .frame(minWidth: 400)
         }
         .frame(minWidth: 700, minHeight: 500)
+        .tint(accentColor)
+        .accentColor(accentColor)
         .sheet(isPresented: $showNewFolderSheet) {
             NewFolderSheet { name, iconName in
                 store.createFolder(name: name, iconName: iconName)
@@ -37,7 +39,7 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Menu Bar Folders")
+                Text("Imperator Menu Bar Folders")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
             }
@@ -53,9 +55,13 @@ struct ContentView: View {
 
             HStack {
                 Button(action: { showNewFolderSheet = true }) {
-                    Label("Add Folder", systemImage: "plus.circle.fill")
-                        .font(.system(size: 13))
-                        .opacity(addFolderHovered ? 1.0 : 0.5)
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Folder")
+                    }
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .opacity(addFolderHovered ? 1.0 : 0.7)
                 }
                 .buttonStyle(.borderless)
                 .onHover { h in
