@@ -7,8 +7,6 @@ struct FolderListView: View {
     @State private var showDeleteAlert = false
     @State private var folderToDelete: MenuBarFolder?
 
-    private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
-
     var body: some View {
         List(selection: Binding(
             get: { selectedFolder?.id },

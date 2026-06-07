@@ -9,6 +9,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
+
+        // Set process name (brand book §15.2)
+        ProcessInfo.processInfo.setValue("Imperator Menu Bar Folders", forKey: "processName")
+
         store = FolderStore()
         menuBarManager = MenuBarManager(store: store, appDelegate: self)
         menuBarManager.syncStatusItems()
@@ -22,10 +26,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupMainMenu() {
         let mainMenu = NSMenu()
 
-        let appMenuItem = NSMenuItem(title: "App", action: nil, keyEquivalent: "")
-        appMenuItem.submenu = NSMenu()
+        // App menu with Quit (brand book §7.17, §15.2)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Quit Imperator Menu Bar Folders",
+                        action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let appMenuItem = NSMenuItem()
+        appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
 
+        // Edit menu for Cmd+V paste support
         let editMenu = NSMenu(title: "Edit")
         editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
         editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")

@@ -91,7 +91,7 @@ struct AppPickerView: View {
                     .foregroundStyle(.tertiary)
             } else if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255))
+                    .foregroundStyle(AppColors.brand)
             }
         }
         .padding(.vertical, 2)

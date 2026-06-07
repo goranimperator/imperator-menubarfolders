@@ -13,8 +13,6 @@ struct FolderDetailView: View {
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var appNameFieldFocused: Bool
 
-    private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -79,7 +77,7 @@ struct FolderDetailView: View {
             HStack(spacing: 4) {
                 Image(systemName: "square.grid.3x3")
                     .font(.system(size: 13))
-                    .foregroundStyle(accentColor)
+                    .foregroundStyle(AppColors.brand)
                 Picker("", selection: Binding(
                     get: { folder.columnsPerRow },
                     set: { store.updateColumns(for: folder, columns: $0) }
@@ -99,7 +97,7 @@ struct FolderDetailView: View {
                     .font(.system(size: 13))
             }
             .buttonStyle(.borderedProminent)
-            .tint(accentColor)
+            .tint(AppColors.brand)
         }
         .padding(20)
     }

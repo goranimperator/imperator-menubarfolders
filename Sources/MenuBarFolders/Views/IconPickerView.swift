@@ -10,7 +10,6 @@ struct IconPickerView: View {
     @State private var svgPreview: NSImage?
     @State private var svgError = false
 
-    private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
     private let columns = Array(repeating: GridItem(.fixed(44), spacing: 6), count: 8)
 
     private var filteredIcons: [String] {
@@ -52,7 +51,7 @@ struct IconPickerView: View {
                 .padding(.vertical, 5)
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(accentColor, lineWidth: 1.5)
+                        .strokeBorder(AppColors.brand, lineWidth: 1.5)
                 )
             }
             Button(action: { dismiss() }) {
@@ -63,7 +62,7 @@ struct IconPickerView: View {
             .buttonStyle(.borderless)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
-            .background(accentColor)
+            .background(AppColors.brand)
             .cornerRadius(6)
         }
         .padding()
@@ -105,14 +104,12 @@ struct IconPickerView: View {
                     .foregroundStyle(.secondary)
                 Text("Lucide Icons")
                     .font(.system(size: 13))
-                    .foregroundStyle(accentColor)
+                    .foregroundStyle(AppColors.brand)
                     .underline()
                     .onTapGesture {
                         NSWorkspace.shared.open(URL(string: "https://lucide.dev/icons/")!)
                     }
-                    .onHover { h in
-                        if h { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                    }
+                    .cursor(.pointingHand)
             }
 
             ZStack(alignment: .topLeading) {
@@ -164,7 +161,7 @@ struct IconPickerView: View {
                     .buttonStyle(.borderless)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
-                    .background(accentColor)
+                    .background(AppColors.brand)
                     .cornerRadius(6)
                 }
             } else if svgError && !svgText.isEmpty {
@@ -209,13 +206,13 @@ struct IconPickerView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 8)
                             .fill(isSelected
-                                ? accentColor.opacity(0.15)
+                                ? AppColors.brand.opacity(0.15)
                                 : Color.primary.opacity(0.03))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(isSelected
-                                ? accentColor
+                                ? AppColors.brand
                                 : Color.clear, lineWidth: 2)
                     )
             }

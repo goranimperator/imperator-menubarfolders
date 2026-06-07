@@ -100,6 +100,7 @@ struct FolderPopoverView: View {
             .padding(.vertical, 10)
         }
         .frame(width: FolderPopoverView.calculateWidth(columns: folder.columnsPerRow))
+        .background(Color.black.opacity(0.15))
     }
 
     @ViewBuilder

@@ -1,36 +1,37 @@
 import SwiftUI
 import ServiceManagement
 
-struct SettingsView: View {
-    @State private var launchAtLogin = false
-
-    private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
+struct LaunchAtLoginToggle: View {
+    @State private var isEnabled = SMAppService.mainApp.status == .enabled
+    @State private var isHovered = false
 
     var body: some View {
-        HStack {
-            Text("Open at login")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Toggle("", isOn: $launchAtLogin)
+        HStack(spacing: 6) {
+            Text("Open at Login")
+                .font(.caption)
+            Toggle("", isOn: $isEnabled)
                 .toggleStyle(.switch)
                 .scaleEffect(0.55)
                 .frame(width: 36, height: 20)
-                .tint(accentColor)
-                .onChange(of: launchAtLogin) { _, newValue in
+                .tint(AppColors.brand)
+                .labelsHidden()
+                .onChange(of: isEnabled) { _, newValue in
                     do {
-                        if newValue {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
-                        }
+                        if newValue { try SMAppService.mainApp.register() }
+                        else { try SMAppService.mainApp.unregister() }
                     } catch {
-                        launchAtLogin = !newValue
+                        isEnabled = SMAppService.mainApp.status == .enabled
                     }
                 }
         }
-        .onAppear {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
-        }
+        .opacity(isHovered ? 1.0 : 0.45)
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+        .onHover { isHovered = $0 }
+    }
+}
+
+struct SettingsView: View {
+    var body: some View {
+        LaunchAtLoginToggle()
     }
 }

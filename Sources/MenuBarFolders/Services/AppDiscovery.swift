@@ -22,31 +22,31 @@ enum AppDiscovery {
         var seen = Set<String>()
         var apps: [DiscoveredApp] = []
 
+        let fm = FileManager.default
+
         for searchPath in searchPaths {
-            let url = URL(fileURLWithPath: searchPath)
-            guard let enumerator = FileManager.default.enumerator(
-                at: url,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            ) else { continue }
+            // Use string-based API to find Cryptex symlinks on macOS Sequoia+ (brand book §22.1)
+            guard let entries = try? fm.contentsOfDirectory(atPath: searchPath) else { continue }
 
-            for case let fileURL as URL in enumerator {
-                guard fileURL.pathExtension == "app" else { continue }
-                enumerator.skipDescendants()
+            for entry in entries {
+                guard entry.hasSuffix(".app") else { continue }
+                let fullPath = (searchPath as NSString).appendingPathComponent(entry)
 
-                guard let bundle = Bundle(url: fileURL),
+                // Resolve symlinks for correct icons (brand book §22.2)
+                let resolved = URL(fileURLWithPath: fullPath).resolvingSymlinksInPath()
+                guard let bundle = Bundle(url: resolved),
                       let bundleID = bundle.bundleIdentifier,
                       !seen.contains(bundleID) else { continue }
 
                 seen.insert(bundleID)
 
-                let name = FileManager.default.displayName(atPath: fileURL.path)
+                let name = fm.displayName(atPath: fullPath)
                     .replacingOccurrences(of: ".app", with: "")
-                let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
+                let icon = NSWorkspace.shared.icon(forFile: resolved.path)
                 icon.size = NSSize(width: 32, height: 32)
 
                 apps.append(DiscoveredApp(
-                    url: fileURL,
+                    url: URL(fileURLWithPath: fullPath),
                     name: name,
                     bundleIdentifier: bundleID,
                     isMenuBarApp: isMenuBarApp(bundle: bundle),

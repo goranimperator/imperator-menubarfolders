@@ -6,8 +6,6 @@ struct ContentView: View {
     @State private var showNewFolderSheet = false
     @State private var addFolderHovered = false
 
-    private let accentColor = Color(red: 0xa0/255, green: 0x18/255, blue: 0x18/255)
-
     var body: some View {
         HSplitView {
             sidebar
@@ -17,8 +15,7 @@ struct ContentView: View {
                 .frame(minWidth: 400)
         }
         .frame(minWidth: 700, minHeight: 500)
-        .tint(accentColor)
-        .accentColor(accentColor)
+        .tint(AppColors.brand)
         .sheet(isPresented: $showNewFolderSheet) {
             NewFolderSheet { name, iconName in
                 store.createFolder(name: name, iconName: iconName)
@@ -74,9 +71,12 @@ struct ContentView: View {
 
             Divider()
 
-            SettingsView()
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
+            HStack {
+                SettingsView()
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
         }
         .background(Color(NSColor.controlBackgroundColor))
     }
@@ -95,7 +95,7 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                 Button("Add Folder") { showNewFolderSheet = true }
                     .buttonStyle(.borderedProminent)
-                    .tint(accentColor)
+                    .tint(AppColors.brand)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
