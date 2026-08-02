@@ -36,7 +36,7 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Imperator Menu Bar Folders")
+                Text("Imperator MenuBarFolders")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
             }

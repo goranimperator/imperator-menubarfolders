@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="MenuBarFolders"
-APP_BUNDLE="Imperator Menu Bar Folders.app"
+APP_BUNDLE="Imperator MenuBarFolders.app"
 
 echo "Building ${APP_NAME}..."
 swift build -c release 2>&1

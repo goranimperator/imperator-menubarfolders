@@ -1,8 +1,8 @@
-APP_NAME    = Imperator Menu Bar Folders
+APP_NAME    = Imperator MenuBarFolders
 BINARY_NAME = MenuBarFolders
 BUNDLE      = build/$(APP_NAME).app
 DIST        = dist
-ZIP         = $(DIST)/Imperator-Menu-Bar-Folders-$(VERSION).zip
+ZIP         = $(DIST)/Imperator-MenuBarFolders-$(VERSION).zip
 BUILD_NUMBER = $(shell git rev-list --count HEAD)
 
 # Self-signed identity, not ad-hoc. The app registers a login item through

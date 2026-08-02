@@ -11,7 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
 
         // Set process name (brand book §15.2)
-        ProcessInfo.processInfo.setValue("Imperator Menu Bar Folders", forKey: "processName")
+        ProcessInfo.processInfo.setValue("Imperator MenuBarFolders", forKey: "processName")
 
         store = FolderStore()
         menuBarManager = MenuBarManager(store: store, appDelegate: self)
@@ -28,7 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // App menu with Quit (brand book §7.17, §15.2)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit Imperator Menu Bar Folders",
+        appMenu.addItem(withTitle: "Quit Imperator MenuBarFolders",
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
@@ -67,7 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Imperator Menu Bar Folders"
+        window.title = "Imperator MenuBarFolders"
         window.contentView = NSHostingView(rootView: contentView)
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="Resources/AppIcon.png" width="128" height="128" alt="Imperator Menu Bar Folders app icon">
+  <img src="Resources/AppIcon.png" width="128" height="128" alt="Imperator MenuBarFolders app icon">
 </p>
 
-<h1 align="center">Imperator Menu Bar Folders</h1>
+<h1 align="center">Imperator MenuBarFolders</h1>
 
 <p align="center">
   Group your apps into folders that live in the macOS menu bar. Each folder is its
@@ -21,14 +21,14 @@ macOS cannot vouch for it. It is provided as is, with no warranty, under the
 ## Install
 
 Download the latest zip from
-[Releases](https://github.com/goranimperator/imperator-menu-bar-folders/releases), unzip, and move
-`Imperator Menu Bar Folders.app` to `/Applications`.
+[Releases](https://github.com/goranimperator/imperator-menubarfolders/releases), unzip, and move
+`Imperator MenuBarFolders.app` to `/Applications`.
 
 The app is signed with a self-signed certificate and is not notarized, so Gatekeeper blocks the
 first launch. Right-click the app and choose **Open**, or clear the quarantine flag:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Imperator Menu Bar Folders.app"
+xattr -dr com.apple.quarantine "/Applications/Imperator MenuBarFolders.app"
 ```
 
 There is no Dock icon. The app lives in the menu bar. On first launch it has no folders yet, so the
