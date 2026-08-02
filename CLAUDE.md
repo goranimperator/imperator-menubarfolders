@@ -5,11 +5,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build
 
 ```bash
-./build.sh
+make install
 ```
 
-Builds with SPM, bundles as .app, ad-hoc codesigns, installs to /Applications.
-Restart after install: `pkill -x MenuBarFolders; sleep 0.5; open '/Applications/Imperator Menu Bar Folders.app'`
+Builds release with SPM, bundles as .app, codesigns with the self-signed `Imperator Dev` identity,
+installs to /Applications, and launches. `make install` already kills the running instance first.
+Other targets: `make run`, `make clean`.
+
+Signing must use a stable identity, not ad-hoc. The login item registration is keyed to the bundle's
+designated requirement, and ad-hoc signing mints a new cdhash per build, so every update would look
+like a different app and drop the registration. Override only for throwaway builds:
+`make build CODESIGN_IDENTITY=-`
+
+## Release
+
+```bash
+make dist VERSION=1.0.0
+```
+
+Builds a zip in `dist/`. Touches nothing in git or on the remote.
+
+```bash
+make release VERSION=1.0.0
+```
+
+Bumps `Resources/Info.plist`, commits, tags `v1.0.0`, pushes, and publishes a GitHub release with
+the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes from
+`git rev-list --count HEAD` and is never hand-edited. Full checklist:
+`~/.claude/skills/imperator-release/SKILL.md`.
 
 ## Architecture
 
@@ -20,12 +43,14 @@ Restart after install: `pkill -x MenuBarFolders; sleep 0.5; open '/Applications/
 
 ### Key patterns
 
-- NSStatusItem + NSPopover (from imperator-menubar-pong)
+- NSStatusItem + NSPopover (from imperator-menu-bar-pong)
 - HSplitView settings window (from imperator-dock-folder)
-- Lucide icons as SVG strings → NSImage(data:) with isTemplate=true
+- Lucide icons as SVG element strings → SVGRenderer → NSImage with isTemplate=true
 - AppDiscovery scans /Applications using string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+)
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Popover height calculated mathematically per folder (columns × rows), set via popover.contentSize
+- Deleting the last folder reopens the settings window — zero status items plus no dock icon would
+  otherwise leave the app unreachable
 
 ### Data flow
 
@@ -37,16 +62,16 @@ MenuBarManager creates one NSStatusItem per folder → click triggers NSPopover 
 Sources/MenuBarFolders/
   main.swift              # App bootstrap (.accessory), forced dark mode + red accent
   AppDelegate.swift       # Lifecycle, settings window, app menu with Cmd+Q
-  AppColors.swift         # Centralized brand colors (AppColors.brand, .brandNS, etc.)
-  ViewExtensions.swift    # .cursor(.pointingHand), .expandTapTarget()
+  AppColors.swift         # Centralized brand color (AppColors.brand)
+  ViewExtensions.swift    # .cursor(.pointingHand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
-  Services/               # FolderStore, MenuBarManager, AppDiscovery, LucideIcons
-  Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover
+  Services/               # FolderStore, MenuBarManager, AppDiscovery, LucideIcons, SVGRenderer
+  Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings
 ```
 
 ## Brand Book
 
-This app follows the Imperator brand book at `~/Code/imperator-mac-apps-brandbook/BRANDBOOK.md`.
+This app follows the Imperator brand book at `~/Code/imperator/imperator-apps-brandbook/BRANDBOOK.md`.
 
 Key rules:
 - **Colors**: Always use `AppColors.brand` — never inline `Color(red: 0xa0/255, ...)` or bare `Color.accentColor`
@@ -55,13 +80,16 @@ Key rules:
 - **HoverButton**: opacity 0.45→1.0, .easeInOut(0.2) — defined in FolderPopoverView.swift
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity — defined in SettingsView.swift
 - **Popover background**: `.background(Color.black.opacity(0.15))`
-- **View extensions**: Use `.cursor(.pointingHand)` on clickable non-button elements, `.expandTapTarget()` on tappable containers
+- **View extensions**: Use `.cursor(.pointingHand)` on clickable non-button elements
 - **Cryptex symlinks**: AppDiscovery uses string-based `contentsOfDirectory(atPath:)` + `resolvingSymlinksInPath()` (§22)
-- **SPM note**: Asset catalogs don't compile in SPM — AccentColor.colorset is non-functional, rely on UserDefaults method only
+- **SPM note**: Asset catalogs don't compile in SPM, so there is no asset catalog in this repo — the
+  red accent comes from the UserDefaults override, and menu bar icons are rendered from SVG data
 
 ## Conventions
 
 - @MainActor on store and manager classes
-- Ad-hoc codesign in build.sh (`codesign --sign - --force --deep`)
+- English only in filenames, comments, UI strings, and file content
 - Commit messages in English
 - No new libraries/patterns without checking existing codebase first
+- Icon path data derives from Lucide (ISC) — keep the attribution header in LucideIcons.swift and
+  the Third-party section in README.md

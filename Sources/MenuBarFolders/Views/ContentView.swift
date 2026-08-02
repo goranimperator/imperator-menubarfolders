@@ -90,7 +90,7 @@ struct ContentView: View {
                 Image(systemName: "menubar.rectangle")
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
-                Text("Skapa din första mapp")
+                Text("Create your first folder")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                 Button("Add Folder") { showNewFolderSheet = true }

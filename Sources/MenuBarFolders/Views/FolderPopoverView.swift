@@ -20,9 +20,12 @@ struct FolderPopoverView: View {
     static let headerHeight: CGFloat = 40
     static let footerHeight: CGFloat = 36
     static let maxGridHeight: CGFloat = 300
+    // The empty state draws an icon and two lines of text where the grid would be.
+    // Returning 0 for it would size the popover to header + footer alone and clip it.
+    private static let emptyStateHeight: CGFloat = 126
 
     static func calculateGridHeight(appCount: Int, columns: Int) -> CGFloat {
-        guard appCount > 0 else { return 0 }
+        guard appCount > 0 else { return emptyStateHeight }
         let rowCount = Int(ceil(Double(appCount) / Double(columns)))
         return CGFloat(rowCount) * cellHeight + CGFloat(max(rowCount - 1, 0)) * gridSpacing + gridPadding
     }
@@ -57,10 +60,10 @@ struct FolderPopoverView: View {
                     Image(systemName: "plus.app")
                         .font(.system(size: 28))
                         .foregroundStyle(.tertiary)
-                    Text("Inga appar ännu")
+                    Text("No apps yet")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                    Text("Öppna Settings för att lägga till appar")
+                    Text("Open Settings to add apps")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }

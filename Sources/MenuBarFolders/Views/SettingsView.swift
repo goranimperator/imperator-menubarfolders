@@ -9,7 +9,7 @@ struct LaunchAtLoginToggle: View {
         HStack(spacing: 6) {
             Text("Open at Login")
                 .font(.caption)
-            Toggle("", isOn: $isEnabled)
+            Toggle("Open at Login", isOn: $isEnabled)
                 .toggleStyle(.switch)
                 .scaleEffect(0.55)
                 .frame(width: 36, height: 20)

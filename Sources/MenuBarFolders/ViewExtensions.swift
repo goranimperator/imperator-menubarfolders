@@ -7,8 +7,4 @@ extension View {
             if inside { cursor.push() } else { NSCursor.pop() }
         }
     }
-
-    func expandTapTarget() -> some View {
-        contentShape(Rectangle())
-    }
 }

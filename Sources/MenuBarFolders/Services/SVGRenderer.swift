@@ -292,7 +292,6 @@ enum SVGPathParser {
         let t = tan(delta / 2)
         let alpha = sin(delta) * (sqrt(4 + 3 * t * t) - 1) / 3
 
-        var prevPoint = p1
         var theta = theta1
 
         for _ in 0..<segments {
@@ -314,9 +313,7 @@ enum SVGPathParser {
             let cp2 = CGPoint(x: ep2x - alpha * d2x, y: ep2y - alpha * d2y)
             let end = CGPoint(x: ep2x, y: ep2y)
 
-            _ = prevPoint
             path.curve(to: end, controlPoint1: cp1, controlPoint2: cp2)
-            prevPoint = end
             theta = nextTheta
         }
     }

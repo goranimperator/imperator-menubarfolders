@@ -1,7 +1,11 @@
 .DS_Store
-/.build
+.build/
+.swiftpm/
 /Packages
+build/
+dist/
+*.app
+*.zip
+.claude/settings.local.json
 xcuserdata/
 DerivedData/
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
-*.app

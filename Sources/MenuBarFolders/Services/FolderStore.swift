@@ -39,6 +39,11 @@ class FolderStore: ObservableObject {
         reindex()
         save()
         syncMenuBar()
+        // With no folders there are no status items, and an LSUIElement app has no
+        // Dock icon -- closing the settings window would leave no way back in.
+        if folders.isEmpty {
+            AppDelegate.shared?.showSettingsWindow()
+        }
     }
 
     func renameFolder(_ folder: MenuBarFolder, to name: String) {
