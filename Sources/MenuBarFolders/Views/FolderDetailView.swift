@@ -189,7 +189,7 @@ struct FolderDetailView: View {
                 }) {
                     Image(systemName: "pencil")
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.gray)
                 }
                 .buttonStyle(.borderless)
                 .help("Rename")
@@ -199,7 +199,7 @@ struct FolderDetailView: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.gray)
                 }
                 .buttonStyle(.borderless)
             }
