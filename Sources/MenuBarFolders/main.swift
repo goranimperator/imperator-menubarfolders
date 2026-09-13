@@ -9,6 +9,8 @@ app.setActivationPolicy(.accessory)
 // Force dark mode (brand book §14.1)
 app.appearance = NSAppearance(named: .darkAqua)
 
-let delegate = AppDelegate()
+// Top-level code already runs on the main thread, so the main-actor-isolated
+// delegate can be created here directly.
+let delegate = MainActor.assumeIsolated { AppDelegate() }
 app.delegate = delegate
 app.run()

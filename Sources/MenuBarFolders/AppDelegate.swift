@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate!
     private(set) var store: FolderStore!
@@ -28,6 +29,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // App menu with Quit (brand book §7.17, §15.2)
         let appMenu = NSMenu()
+        // Brand book §10.1: About is the first item under the app name menu.
+        appMenu.addItem(withTitle: "About Imperator MenuBarFolders",
+                        action: #selector(showAbout), keyEquivalent: "")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Imperator MenuBarFolders",
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
@@ -49,6 +54,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(editMenuItem)
 
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func showAbout() {
+        AboutPanel.show()
     }
 
     func showSettingsWindow() {

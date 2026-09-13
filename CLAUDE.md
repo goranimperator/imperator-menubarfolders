@@ -36,8 +36,8 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 
 ## Architecture
 
-- **SPM** (Package.swift) — Swift 5.9, macOS 14+
-- **LSUIElement** — menu bar only, no dock icon
+- **SPM** (Package.swift): Swift 5.9, macOS 14+
+- **LSUIElement**: menu bar only, no dock icon
 - **MVVM**: FolderStore (ObservableObject) → Views
 - **Persistence**: `~/Library/Application Support/MenuBarFolders/folders.json`
 
@@ -49,7 +49,7 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 - AppDiscovery scans /Applications using string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+)
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Popover height calculated mathematically per folder (columns × rows), set via popover.contentSize
-- Deleting the last folder reopens the settings window — zero status items plus no dock icon would
+- Deleting the last folder reopens the settings window, because zero status items plus no dock icon would
   otherwise leave the app unreachable
 
 ### Data flow
@@ -66,7 +66,7 @@ Sources/MenuBarFolders/
   ViewExtensions.swift    # .cursor(.pointingHand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
   Services/               # FolderStore, MenuBarManager, AppDiscovery, LucideIcons, SVGRenderer
-  Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings
+  Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings, AboutPanel
 ```
 
 ## Brand Book
@@ -74,15 +74,17 @@ Sources/MenuBarFolders/
 This app follows the Imperator brand book at `~/Code/imperator/imperator-apps-brandbook/BRANDBOOK.md`.
 
 Key rules:
-- **Colors**: Always use `AppColors.brand` — never inline `Color(red: 0xa0/255, ...)` or bare `Color.accentColor`
+- **Colors**: Always use `AppColors.brand`, never inline `Color(red: 0xa0/255, ...)` or bare `Color.accentColor`
 - **Dark mode**: Forced via `NSApp.appearance = NSAppearance(named: .darkAqua)` in main.swift
 - **Accent override**: `UserDefaults.standard.set(0, forKey: "AppleAccentColor")` in main.swift
-- **HoverButton**: opacity 0.45→1.0, .easeInOut(0.2) — defined in FolderPopoverView.swift
-- **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity — defined in SettingsView.swift
+- **HoverButton**: opacity 0.45 to 1.0, .easeInOut(0.2), defined in FolderPopoverView.swift
+- **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift
 - **Popover background**: `.background(Color.black.opacity(0.15))`
+- **About panel**: brand book §10, `NSPanel` 300x260pt, computed `© 1986-<year>` line, in AboutPanel.swift
+- **Main-actor**: AppDelegate is `@MainActor`; main.swift builds it with `MainActor.assumeIsolated`
 - **View extensions**: Use `.cursor(.pointingHand)` on clickable non-button elements
 - **Cryptex symlinks**: AppDiscovery uses string-based `contentsOfDirectory(atPath:)` + `resolvingSymlinksInPath()` (§22)
-- **SPM note**: Asset catalogs don't compile in SPM, so there is no asset catalog in this repo — the
+- **SPM note**: Asset catalogs don't compile in SPM, so there is no asset catalog in this repo. The
   red accent comes from the UserDefaults override, and menu bar icons are rendered from SVG data
 
 ## Conventions
@@ -91,5 +93,5 @@ Key rules:
 - English only in filenames, comments, UI strings, and file content
 - Commit messages in English
 - No new libraries/patterns without checking existing codebase first
-- Icon path data derives from Lucide (ISC) — keep the attribution header in LucideIcons.swift and
+- Icon path data derives from Lucide (ISC): keep the attribution header in LucideIcons.swift and
   the Third-party section in README.md

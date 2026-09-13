@@ -18,7 +18,8 @@ struct FolderPopoverView: View {
     private static let gridSpacing: CGFloat = 12
     private static let gridPadding: CGFloat = 28
     static let headerHeight: CGFloat = 40
-    static let footerHeight: CGFloat = 36
+    // Tall enough for the login toggle (20) plus the footer's vertical padding (10 + 10).
+    static let footerHeight: CGFloat = 40
     static let maxGridHeight: CGFloat = 300
     // The empty state draws an icon and two lines of text where the grid would be.
     // Returning 0 for it would size the popover to header + footer alone and clip it.
@@ -30,8 +31,14 @@ struct FolderPopoverView: View {
         return CGFloat(rowCount) * cellHeight + CGFloat(max(rowCount - 1, 0)) * gridSpacing + gridPadding
     }
 
+    // The footer no longer fits in whatever width the grid asks for: the login
+    // toggle, Settings, About and Quit need 270pt measured at the caption size,
+    // which neither a two-column grid (188pt) nor a three-column one (268pt)
+    // provides. Floor the width so the footer cannot clip.
+    private static let footerMinWidth: CGFloat = 290
+
     static func calculateWidth(columns: Int) -> CGFloat {
-        CGFloat(columns) * widthPerColumn + gridPadding
+        max(CGFloat(columns) * widthPerColumn + gridPadding, footerMinWidth)
     }
 
     static func calculateTotalHeight(appCount: Int, columns: Int) -> CGFloat {
@@ -84,6 +91,10 @@ struct FolderPopoverView: View {
             Divider()
 
             HStack {
+                LaunchAtLoginToggle()
+
+                Spacer()
+
                 HoverButton(action: onOpenSettings) {
                     HStack(spacing: 4) {
                         Image(systemName: "gear")
@@ -92,7 +103,12 @@ struct FolderPopoverView: View {
                     .font(.caption)
                 }
 
-                Spacer()
+                // Brand book §10.1: About sits next to Quit in the footer.
+                HoverButton(action: { AboutPanel.show() }) {
+                    Text("About")
+                        .font(.caption)
+                }
+                .help("About Imperator MenuBarFolders")
 
                 HoverButton(action: onQuit) {
                     Text("Quit")
