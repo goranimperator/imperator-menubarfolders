@@ -49,6 +49,12 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 - AppDiscovery scans /Applications using string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+)
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Popover height calculated mathematically per folder (columns × rows), set via popover.contentSize
+- Popover behavior is `.applicationDefined`, never `.transient`. A transient popover closes itself on
+  any mouse-down outside it, and the status item button counts as outside, so it was already closed
+  by the time `statusItemClicked` ran and the toggle reopened it instead of closing. MenuBarManager
+  owns dismissal: a global monitor for other-app clicks, a local keyDown monitor for Escape, and
+  `NSPopoverDelegate.popoverDidClose` to keep `activePopoverID` honest on every close path
+- MenuBarManager inherits NSObject, which `NSPopoverDelegate` requires
 - Deleting the last folder reopens the settings window, because zero status items plus no dock icon would
   otherwise leave the app unreachable
 

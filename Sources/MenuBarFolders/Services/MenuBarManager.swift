@@ -5,17 +5,19 @@ import ObjectiveC
 private var folderIDKey: UInt8 = 0
 
 @MainActor
-class MenuBarManager {
+class MenuBarManager: NSObject {
     private var statusItems: [UUID: NSStatusItem] = [:]
     private var popovers: [UUID: NSPopover] = [:]
     private var activePopoverID: UUID?
     private var eventMonitor: Any?
+    private var localMonitor: Any?
     private let store: FolderStore
     private weak var appDelegate: AppDelegate?
 
     init(store: FolderStore, appDelegate: AppDelegate) {
         self.store = store
         self.appDelegate = appDelegate
+        super.init()
     }
 
     func syncStatusItems() {
@@ -118,8 +120,15 @@ class MenuBarManager {
         let hostingController = NSHostingController(rootView: popoverView)
         let popover = NSPopover()
         popover.contentSize = NSSize(width: totalWidth, height: totalHeight)
-        popover.behavior = .transient
+        // Not .transient. A transient popover closes itself on any mouse-down outside
+        // it, and the status item button counts as outside, so it would already be
+        // closed by the time statusItemClicked runs. The toggle below would then read
+        // isShown as false and open it straight back up. Owning dismissal ourselves
+        // removes that race; the monitors installed in setupEventMonitors take over
+        // the outside-click and Escape handling that .transient used to provide.
+        popover.behavior = .applicationDefined
         popover.animates = true
+        popover.delegate = self
         popover.contentViewController = hostingController
 
         popovers[folderID] = popover
@@ -128,29 +137,60 @@ class MenuBarManager {
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
 
-        setupEventMonitor(for: folderID)
+        setupEventMonitors(for: folderID)
     }
 
     private func closePopover(for folderID: UUID) {
         popovers[folderID]?.performClose(nil)
         if activePopoverID == folderID { activePopoverID = nil }
-        teardownEventMonitor()
+        teardownEventMonitors()
     }
 
-    private func setupEventMonitor(for folderID: UUID) {
-        teardownEventMonitor()
+    private func setupEventMonitors(for folderID: UUID) {
+        teardownEventMonitors()
+
+        // Clicks in another app. A global monitor never sees our own app's events,
+        // which is why clicking the status item reaches statusItemClicked untouched.
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
                 self.closePopover(for: folderID)
             }
         }
+
+        // Escape, which .transient used to handle for free. Returning the event keeps
+        // every other key working inside the popover.
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self, event.keyCode == 53 else { return event }
+            Task { @MainActor in
+                self.closePopover(for: folderID)
+            }
+            return nil
+        }
     }
 
-    private func teardownEventMonitor() {
+    private func teardownEventMonitors() {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
+        }
+        if let monitor = localMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMonitor = nil
+        }
+    }
+}
+
+extension MenuBarManager: NSPopoverDelegate {
+    /// Keeps activePopoverID honest no matter which path closed the popover, so a
+    /// later click is never blocked by a stale id.
+    func popoverDidClose(_ notification: Notification) {
+        guard let popover = notification.object as? NSPopover,
+              let id = popovers.first(where: { $0.value === popover })?.key else { return }
+        popovers.removeValue(forKey: id)
+        if activePopoverID == id {
+            activePopoverID = nil
+            teardownEventMonitors()
         }
     }
 }

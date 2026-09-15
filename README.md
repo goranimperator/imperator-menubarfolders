@@ -48,8 +48,9 @@ Items in System Settings. Turning the toggle off unregisters it.
 ## Use
 
 Each folder you create becomes its own icon in the menu bar. Click an icon and a popover drops down
-with that folder's apps; click an app to launch it. The popover footer holds the **Open at Login**
-toggle on the left, and **Settings**, **About** and **Quit** on the right.
+with that folder's apps; click an app to launch it. Clicking the same icon again closes the popover,
+as does Escape or a click in another app. The popover footer holds the **Open at Login** toggle on
+the left, and **Settings**, **About** and **Quit** on the right.
 
 The settings window is where folders are built:
 
