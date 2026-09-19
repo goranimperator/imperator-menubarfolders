@@ -148,11 +148,28 @@ class MenuBarManager: NSObject {
     private func setupEventMonitors(for folderID: UUID) {
         teardownEventMonitors()
 
-        // Clicks in another app. A global monitor never sees our own app's events,
-        // which is why clicking the status item reaches statusItemClicked untouched.
+        // Click-outside dismissal, the part .transient used to handle.
+        //
+        // A global monitor is documented to see only other applications' events, but the
+        // first click into an inactive accessory app's popover reaches it too, and this
+        // app is .accessory. Closing on every event therefore shut the popover before the
+        // click landed on the app cell or toggle under the cursor. So "outside" is decided
+        // by where the pointer is, not by the monitor having fired. The status item's own
+        // frame is excluded as well, or this would close the popover a moment before
+        // statusItemClicked runs, leaving the toggle to read isShown as false and open it
+        // straight back up. Same trap as .transient, reached by a different road.
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor in
+            MainActor.assumeIsolated {
+                guard let self, let popover = self.popovers[folderID], popover.isShown else { return }
+                let pointer = NSEvent.mouseLocation
+                if let window = popover.contentViewController?.view.window,
+                   window.frame.contains(pointer) {
+                    return
+                }
+                if let button = self.statusItems[folderID]?.button, let window = button.window,
+                   window.convertToScreen(button.frame).contains(pointer) {
+                    return
+                }
                 self.closePopover(for: folderID)
             }
         }
@@ -160,9 +177,9 @@ class MenuBarManager: NSObject {
         // Escape, which .transient used to handle for free. Returning the event keeps
         // every other key working inside the popover.
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard let self, event.keyCode == 53 else { return event }
-            Task { @MainActor in
-                self.closePopover(for: folderID)
+            guard event.keyCode == 53 else { return event }
+            MainActor.assumeIsolated {
+                self?.closePopover(for: folderID)
             }
             return nil
         }

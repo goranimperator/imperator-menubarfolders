@@ -59,8 +59,15 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 - Popover behavior is `.applicationDefined`, never `.transient`. A transient popover closes itself on
   any mouse-down outside it, and the status item button counts as outside, so it was already closed
   by the time `statusItemClicked` ran and the toggle reopened it instead of closing. MenuBarManager
-  owns dismissal: a global monitor for other-app clicks, a local keyDown monitor for Escape, and
+  owns dismissal: a global mouse-down monitor, a local keyDown monitor for Escape, and
   `NSPopoverDelegate.popoverDidClose` to keep `activePopoverID` honest on every close path
+- The global monitor decides "outside" from `NSEvent.mouseLocation`, never from the monitor having
+  fired. A global monitor is documented to see only other apps' events, but the first click into an
+  inactive `.accessory` app's popover reaches it too, so closing on every event shut the popover
+  before the click landed on the control under the cursor. The status item's own frame is excluded
+  as well, or the popover closes a moment before `statusItemClicked` runs and the toggle reopens it.
+  imperator-widget-clock documents the same trap. Use `MainActor.assumeIsolated`, not `Task`: a
+  deferred close lands a runloop turn late
 - MenuBarManager inherits NSObject, which `NSPopoverDelegate` requires
 - Deleting the last folder reopens the settings window, because zero status items plus no dock icon would
   otherwise leave the app unreachable
