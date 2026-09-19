@@ -38,6 +38,12 @@ struct FolderPopoverView: View {
     // two-column grid (188pt) nor a three-column one (268pt) provides. Floor the width so
     // the footer cannot clip.
     private static let footerMinWidth: CGFloat = 300
+    // Brand book section 13: window-shaped surfaces are 18pt with a continuous curve on
+    // macOS 27. AppKit draws the popover's rounded frame but does not clip the content
+    // view to it, so a view with its own background paints square corners on top of that
+    // frame. Verified by rendering NSPopoverFrame with a filled content view: the corners
+    // came out at a hard 90 degrees until the content was clipped to this shape.
+    private static let cornerRadius: CGFloat = 18
 
     static func calculateWidth(columns: Int) -> CGFloat {
         max(CGFloat(columns) * widthPerColumn + gridPadding, footerMinWidth)
@@ -122,6 +128,9 @@ struct FolderPopoverView: View {
         }
         .frame(width: FolderPopoverView.calculateWidth(columns: folder.columnsPerRow))
         .background(Color.black.opacity(0.15))
+        .clipShape(
+            RoundedRectangle(cornerRadius: FolderPopoverView.cornerRadius, style: .continuous)
+        )
     }
 
     @ViewBuilder
