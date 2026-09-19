@@ -94,11 +94,15 @@ Key rules:
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
-- **Popover background**: `.background(Color.black.opacity(0.15))`, then
-  `.clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))`. AppKit draws the popover's
-  rounded frame but does not clip the content view to it, so a background paints square corners on
-  top of that frame. 18pt continuous is the brand book §13 window radius for macOS 27
-- **About panel**: brand book §10, `NSPanel` 300x260pt, computed `© 1986-<year>` line, in AboutPanel.swift
+- **Popover background**: none. The popover shows the system material and the system corners, which
+  is a deliberate deviation from the brand book's `Popover background: .black.opacity(0.15)`, asked
+  for on 2026-09-19. Never add a `clipShape` either: the content clip belongs to the system, measured
+  at 19.75pt on macOS 27 in imperator-widget-clock. Rendering `NSPopoverFrame` through `cacheDisplay`
+  makes the content look unclipped, but that bypasses the window's shape mask and is not evidence
+- **About panel**: brand book §10, `NSPanel` 300x260pt, computed `© 1986-<year>` line, in
+  AboutPanel.swift. No `backgroundColor`, only `darkAqua`, same as imperator-widget-clock.
+  `hidesOnDeactivate = false` is required: an NSPanel hides itself when the app deactivates, and an
+  .accessory app deactivates on the first click anywhere else
 - **Main-actor**: AppDelegate is `@MainActor`; main.swift builds it with `MainActor.assumeIsolated`
 - **View extensions**: Use `.cursor(.pointingHand)` on clickable non-button elements
 - **Cryptex symlinks**: AppDiscovery uses string-based `contentsOfDirectory(atPath:)` + `resolvingSymlinksInPath()` (§22)

@@ -26,7 +26,12 @@ enum AboutPanel {
         aboutPanel.titleVisibility = .hidden
         aboutPanel.isMovableByWindowBackground = true
         aboutPanel.isReleasedWhenClosed = false
-        aboutPanel.backgroundColor = AppColors.backgroundNS
+        // An NSPanel hides itself when its app deactivates, and this is an .accessory app
+        // that goes inactive the moment anything else is clicked, so the panel would
+        // vanish behind the first click outside it.
+        aboutPanel.hidesOnDeactivate = false
+        // No backgroundColor: the panel keeps the system's own, same as
+        // imperator-widget-clock. The appearance is the only thing forced.
         aboutPanel.appearance = NSAppearance(named: .darkAqua)
         aboutPanel.contentView = hostingView
         aboutPanel.center()
