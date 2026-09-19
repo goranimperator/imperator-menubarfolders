@@ -9,10 +9,14 @@ struct LaunchAtLoginToggle: View {
         HStack(spacing: 6) {
             Text("Open at Login")
                 .font(.caption)
+            // The stock switch, styled only by the brand tint. No frame: the macOS 27
+            // switch measures 54x24pt and scaleEffect does not change the size it claims
+            // in layout, so a 36x20 frame only clipped the hit area while reading as a
+            // size guarantee it never gave. No cursor modifier either, so the pointer
+            // stays the system arrow the way every other switch on the system behaves.
             Toggle("Open at Login", isOn: $isEnabled)
                 .toggleStyle(.switch)
                 .scaleEffect(0.55)
-                .frame(width: 36, height: 20)
                 .tint(AppColors.brand)
                 .labelsHidden()
                 .onChange(of: isEnabled) { _, newValue in

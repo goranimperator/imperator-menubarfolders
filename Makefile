@@ -12,12 +12,24 @@ BUILD_NUMBER = $(shell git rev-list --count HEAD)
 # Imperator Dev cert keeps the requirement stable across releases.
 CODESIGN_IDENTITY ?= Imperator Dev
 
+# AppKit picks which generation of a control to draw from the sdk field in the
+# binary's LC_BUILD_VERSION, and SwiftPM stamps that field from platforms: in
+# Package.swift rather than from the SDK it compiled against. Left alone this app
+# reports sdk 14.0 and draws macOS 14 era switches on macOS 27. Raising platforms:
+# would fix the stamp but make macOS 27 the minimum, which a public repo promising
+# macOS 14 cannot do, so the stamp is set here instead: minos stays 14.0, sdk
+# follows whatever SDK is installed.
+DEPLOYMENT_TARGET = 14.0
+SDK_VERSION = $(shell xcrun --sdk macosx --show-sdk-version)
+PLATFORM_FLAGS = -Xlinker -platform_version -Xlinker macos \
+                 -Xlinker $(DEPLOYMENT_TARGET) -Xlinker $(SDK_VERSION)
+
 .PHONY: all build clean run install dist release check-version
 
 all: build
 
 build:
-	swift build -c release
+	swift build -c release $(PLATFORM_FLAGS)
 	@rm -rf "$(BUNDLE)"
 	@mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Resources"
 	cp ".build/release/$(BINARY_NAME)" "$(BUNDLE)/Contents/MacOS/$(BINARY_NAME)"

@@ -11,7 +11,7 @@
 
 ## Requirements
 
-Requires macOS 14 or later, Apple silicon. Built and tested on macOS 26 only. Older versions are
+Requires macOS 14 or later, Apple silicon. Built and tested on macOS 27 only. Older versions are
 expected to work but have not been verified.
 
 Install at your own risk. The app is not notarized and carries no Apple Developer signature, so
@@ -92,6 +92,13 @@ make run
 make clean
 ```
 
+The build passes `-platform_version macos 14.0 <installed SDK>` to the linker. AppKit decides which
+generation of a control to draw from the `sdk` field in the binary's `LC_BUILD_VERSION`, and SwiftPM
+stamps that field from `platforms:` rather than from the SDK it compiled against, so without the flag
+the app reports `sdk 14.0` and draws macOS 14 era switches on macOS 27. Raising `platforms:` would
+fix the stamp but make the deployment target the minimum, so the flag sets the two independently:
+`minos 14.0`, `sdk` whatever is installed.
+
 Signing uses the self-signed `Imperator Dev` identity by default. It has to be a stable identity
 rather than ad-hoc: the login item registration is keyed to the bundle's designated requirement, and
 ad-hoc signing mints a new hash on every build, so each update would look like a different app and
@@ -106,14 +113,14 @@ make build CODESIGN_IDENTITY=-
 Build a zip without touching git or the remote:
 
 ```bash
-make dist VERSION=1.0.0
+make dist VERSION=x.y.z
 ```
 
-Cut a full release, which bumps `Info.plist`, commits, tags `v1.0.0`, pushes, and publishes a GitHub
+Cut a full release, which bumps `Info.plist`, commits, tags `vx.y.z`, pushes, and publishes a GitHub
 release with the zip attached:
 
 ```bash
-make release VERSION=1.0.0
+make release VERSION=x.y.z
 ```
 
 Requires the [GitHub CLI](https://cli.github.com) (`brew install gh`, then `gh auth login`). The

@@ -12,6 +12,13 @@ Builds release with SPM, bundles as .app, codesigns with the self-signed `Impera
 installs to /Applications, and launches. `make install` already kills the running instance first.
 Other targets: `make run`, `make clean`.
 
+The build passes `-platform_version macos 14.0 $(SDK_VERSION)` to the linker. AppKit picks the
+generation of a control from the `sdk` field in `LC_BUILD_VERSION`, and SwiftPM stamps that from
+`platforms:` rather than the SDK it built against, so without the flag the binary reports `sdk 14.0`
+and draws macOS 14 era switches. Never raise `platforms:` to fix this: that makes the new value the
+minimum and the repo is public with a macOS 14 promise. Verify with:
+`otool -l "build/Imperator MenuBarFolders.app/Contents/MacOS/MenuBarFolders" | awk '/LC_BUILD_VERSION/,/^$/'`
+
 Signing must use a stable identity, not ad-hoc. The login item registration is keyed to the bundle's
 designated requirement, and ad-hoc signing mints a new cdhash per build, so every update would look
 like a different app and drop the registration. Override only for throwaway builds:
@@ -36,7 +43,7 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 
 ## Architecture
 
-- **SPM** (Package.swift): Swift 5.9, macOS 14+
+- **SPM** (Package.swift): swift-tools-version 6.4 with `swiftLanguageMode(.v5)`, deployment target macOS 14
 - **LSUIElement**: menu bar only, no dock icon
 - **MVVM**: FolderStore (ObservableObject) → Views
 - **Persistence**: `~/Library/Application Support/MenuBarFolders/folders.json`
@@ -84,7 +91,9 @@ Key rules:
 - **Dark mode**: Forced via `NSApp.appearance = NSAppearance(named: .darkAqua)` in main.swift
 - **Accent override**: `UserDefaults.standard.set(0, forKey: "AppleAccentColor")` in main.swift
 - **HoverButton**: opacity 0.45 to 1.0, .easeInOut(0.2), defined in FolderPopoverView.swift
-- **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift
+- **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
+  The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
+  and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
 - **Popover background**: `.background(Color.black.opacity(0.15))`
 - **About panel**: brand book §10, `NSPanel` 300x260pt, computed `© 1986-<year>` line, in AboutPanel.swift
 - **Main-actor**: AppDelegate is `@MainActor`; main.swift builds it with `MainActor.assumeIsolated`
