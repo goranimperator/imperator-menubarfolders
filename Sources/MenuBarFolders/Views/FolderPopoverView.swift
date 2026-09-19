@@ -5,6 +5,7 @@ struct FolderPopoverView: View {
     let gridHeight: CGFloat
     let onOpenApp: (AppEntry) -> Void
     let onOpenSettings: () -> Void
+    let onShowAbout: () -> Void
     let onQuit: () -> Void
 
     @State private var hoveredApp: String?
@@ -50,10 +51,15 @@ struct FolderPopoverView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .center) {
-                if let img = folderPreviewIcon(folder, size: 14) {
+            HStack(alignment: .center, spacing: 8) {
+                // The folder's own menu bar glyph at 16pt, left of the name, the way
+                // imperator-widget-clock and the other popover apps draw their header.
+                // Template rendering lets it take the popover's foreground colour instead
+                // of the hardcoded white the preview renderer bakes in.
+                if let img = folderStatusIcon(folder, size: 16) {
                     Image(nsImage: img)
-                        .frame(width: 14, height: 14)
+                        .renderingMode(.template)
+                        .foregroundStyle(.primary)
                 }
                 Text(folder.name)
                     .font(.headline)
@@ -92,7 +98,7 @@ struct FolderPopoverView: View {
 
             Divider()
 
-            HStack {
+            HStack(spacing: 12) {
                 LaunchAtLoginToggle()
 
                 Spacer()
@@ -105,8 +111,10 @@ struct FolderPopoverView: View {
                     .font(.caption)
                 }
 
-                // Brand book §10.1: About sits next to Quit in the footer.
-                HoverButton(action: { AboutPanel.show() }) {
+                // Brand book §10.1: About sits next to Quit in the footer. It closes the
+                // popover first, because .applicationDefined would otherwise leave it
+                // hanging open behind the panel.
+                HoverButton(action: onShowAbout) {
                     Text("About")
                         .font(.caption)
                 }

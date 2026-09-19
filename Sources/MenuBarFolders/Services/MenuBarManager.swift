@@ -58,12 +58,7 @@ class MenuBarManager: NSObject {
     }
 
     private func statusBarIcon(for folder: MenuBarFolder) -> NSImage {
-        if let svg = folder.customSVG, let img = LucideIcons.statusBarImageFromSVG(svg) {
-            return img
-        }
-        if let img = LucideIcons.statusBarImage(named: folder.iconName) {
-            return img
-        }
+        if let img = folderStatusIcon(folder, size: 18) { return img }
         let fallback = NSImage(systemSymbolName: "folder", accessibilityDescription: folder.name)!
         fallback.isTemplate = true
         return fallback
@@ -112,6 +107,10 @@ class MenuBarManager: NSObject {
             onOpenSettings: { [weak self] in
                 self?.closePopover(for: folderID)
                 self?.appDelegate?.showSettingsWindow()
+            },
+            onShowAbout: { [weak self] in
+                self?.closePopover(for: folderID)
+                AboutPanel.show()
             },
             onQuit: {
                 NSApplication.shared.terminate(nil)

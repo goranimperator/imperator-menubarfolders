@@ -94,6 +94,11 @@ Key rules:
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
+- **Popover header**: the folder's own menu bar glyph at 16pt via `folderStatusIcon`, rendered as a
+  template so it takes `.primary`, then the folder name in `.headline`, `spacing: 8`, H16 V12. Same
+  shape as imperator-widget-clock's header. Do not use `folderPreviewIcon` here: it bakes in white
+- **Popover footer**: `HStack(spacing: 12)`. About closes the popover before opening the panel,
+  because `.applicationDefined` would otherwise leave it hanging open behind it
 - **Popover background**: none. The popover shows the system material and the system corners, which
   is a deliberate deviation from the brand book's `Popover background: .black.opacity(0.15)`, asked
   for on 2026-09-19. Never add a `clipShape` either: the content clip belongs to the system, measured

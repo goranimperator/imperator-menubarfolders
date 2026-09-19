@@ -80,6 +80,17 @@ enum LucideIcons {
     }
 }
 
+/// The folder's menu bar glyph as a template image, so it takes whatever foreground
+/// colour it is drawn in. The popover header uses the same glyph as the status item,
+/// the way imperator-widget-clock and the other popover apps do.
+func folderStatusIcon(_ folder: MenuBarFolder, size: CGFloat = 16) -> NSImage? {
+    if let svg = folder.customSVG, let img = LucideIcons.statusBarImageFromSVG(svg, size: size) {
+        return img
+    }
+    return LucideIcons.statusBarImage(named: folder.iconName, size: size)
+        ?? LucideIcons.statusBarImage(named: "folder", size: size)
+}
+
 func folderPreviewIcon(_ folder: MenuBarFolder, size: CGFloat = 24) -> NSImage? {
     if let svg = folder.customSVG, let img = LucideIcons.previewImageFromSVG(svg, size: size) {
         return img
