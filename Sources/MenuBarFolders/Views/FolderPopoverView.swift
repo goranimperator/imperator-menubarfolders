@@ -34,11 +34,12 @@ struct FolderPopoverView: View {
         return CGFloat(rowCount) * cellHeight + CGFloat(max(rowCount - 1, 0)) * gridSpacing + gridPadding
     }
 
-    // The footer no longer fits in whatever width the grid asks for: the login toggle,
-    // Settings, About and Quit measure 288pt at the caption size, which neither a
-    // two-column grid (188pt) nor a three-column one (268pt) provides. Floor the width so
-    // the footer cannot clip.
-    private static let footerMinWidth: CGFloat = 300
+    // The footer does not fit in whatever width the grid asks for: the login
+    // toggle, Settings, About and Quit need more than a two-column grid (188pt)
+    // or a three-column one (268pt) provides. It was floored at 300 and "Open at
+    // Login" still came out as "Open a...", so the floor is the brandbook's own
+    // 340, which is what every other Imperator menu bar panel is wide.
+    private static let footerMinWidth: CGFloat = 340
 
     static func calculateWidth(columns: Int) -> CGFloat {
         max(CGFloat(columns) * widthPerColumn + gridPadding, footerMinWidth)
@@ -129,10 +130,11 @@ struct FolderPopoverView: View {
             .padding(.vertical, 10)
         }
         .frame(width: FolderPopoverView.calculateWidth(columns: folder.columnsPerRow))
-        // Nothing paints behind the content: the popover shows the system's own material
-        // and the system's own corners. A background tint would cover that material, and
-        // a clipShape would stack a second, tighter rounding inside the clip the system
-        // already draws at 19.75pt on macOS 27.
+        // Brandbook 6.1: the tint over the panel's material, the same one every
+        // other Imperator menu bar panel paints. MenuBarPanel lays down the
+        // system's `.popover` material and rounds itself at 17.5pt, so nothing
+        // here clips or fills a second time.
+        .background(AppColors.popoverBackground)
     }
 
     @ViewBuilder

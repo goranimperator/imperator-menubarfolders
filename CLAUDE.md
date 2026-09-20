@@ -50,31 +50,31 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 
 ### Key patterns
 
-- NSStatusItem + NSPopover (from imperator-menu-bar-pong)
+- NSStatusItem + MenuBarPanel, the app's own `NSPanel`, not `NSPopover`
 - HSplitView settings window (from imperator-dock-folder)
 - Lucide icons as SVG element strings → SVGRenderer → NSImage with isTemplate=true
 - AppDiscovery scans /Applications using string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+)
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
-- Popover height calculated mathematically per folder (columns × rows), set via popover.contentSize
-- Popover behavior is `.applicationDefined`, never `.transient`. A transient popover closes itself on
-  any mouse-down outside it, and the status item button counts as outside, so it was already closed
-  by the time `statusItemClicked` ran and the toggle reopened it instead of closing. MenuBarManager
-  owns dismissal: a global mouse-down monitor, a local keyDown monitor for Escape, and
-  `NSPopoverDelegate.popoverDidClose` to keep `activePopoverID` honest on every close path
-- The global monitor decides "outside" from `NSEvent.mouseLocation`, never from the monitor having
-  fired. A global monitor is documented to see only other apps' events, but the first click into an
-  inactive `.accessory` app's popover reaches it too, so closing on every event shut the popover
-  before the click landed on the control under the cursor. The status item's own frame is excluded
-  as well, or the popover closes a moment before `statusItemClicked` runs and the toggle reopens it.
-  imperator-widget-clock documents the same trap. Use `MainActor.assumeIsolated`, not `Task`: a
-  deferred close lands a runloop turn late
-- MenuBarManager inherits NSObject, which `NSPopoverDelegate` requires
+- Panel height calculated mathematically per folder (columns × rows) and handed to the panel through
+  `contentHeight`, because a SwiftUI fitting size a point short opens the panel clipped
+- Never go back to `NSPopover`. It draws neither the shape nor the corner macOS puts on a menu bar
+  panel, and exposes no radius to set. `MenuBarPanel.swift` carries the measurements and the reason
+  its constant sits higher than the corner it draws; read them there rather than restating them
+- `MenuBarPanel` owns dismissal: its own global mouse-down monitor and a local keyDown monitor for
+  Escape, plus `onClose` so the owner can clear `activePopoverID`. MenuBarManager no longer writes
+  any of that by hand, and `setupEventMonitors` is left empty on purpose
+- Outside is decided from `NSEvent.mouseLocation`, never from the monitor having fired. A global
+  monitor is documented to see only other apps' events, but the first click into an inactive
+  `.accessory` app reaches it too, so closing on every event shut the panel before the click landed
+  on the control under the cursor. The status item's own window is excluded as well, or the panel
+  closes a moment before `statusItemClicked` runs and the toggle reopens it
+- No arrow and no open or close animation. macOS 27's own menu bar panels have neither
 - Deleting the last folder reopens the settings window, because zero status items plus no dock icon would
   otherwise leave the app unreachable
 
 ### Data flow
 
-MenuBarManager creates one NSStatusItem per folder → click triggers NSPopover with FolderPopoverView → app click launches via NSWorkspace. FolderStore publishes changes → MenuBarManager.syncStatusItems() rebuilds status bar.
+MenuBarManager creates one NSStatusItem per folder → click shows a MenuBarPanel hosting FolderPopoverView → app click launches via NSWorkspace. FolderStore publishes changes → MenuBarManager.syncStatusItems() rebuilds status bar.
 
 ## Structure
 
@@ -85,7 +85,7 @@ Sources/MenuBarFolders/
   AppColors.swift         # Centralized brand color (AppColors.brand)
   ViewExtensions.swift    # .cursor(.pointingHand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
-  Services/               # FolderStore, MenuBarManager, AppDiscovery, LucideIcons, SVGRenderer
+  Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, LucideIcons, SVGRenderer
   Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings, AboutPanel
 ```
 
@@ -101,16 +101,15 @@ Key rules:
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
-- **Popover header**: the folder's own menu bar glyph at 16pt via `folderStatusIcon`, rendered as a
+- **Panel header**: the folder's own menu bar glyph at 16pt via `folderStatusIcon`, rendered as a
   template so it takes `.primary`, then the folder name in `.headline`, `spacing: 8`, H16 V12. Same
   shape as imperator-widget-clock's header. Do not use `folderPreviewIcon` here: it bakes in white
-- **Popover footer**: `HStack(spacing: 12)`. About closes the popover before opening the panel,
-  because `.applicationDefined` would otherwise leave it hanging open behind it
-- **Popover background**: none. The popover shows the system material and the system corners, which
-  is a deliberate deviation from the brand book's `Popover background: .black.opacity(0.15)`, asked
-  for on 2026-09-19. Never add a `clipShape` either: the content clip belongs to the system, measured
-  at 19.75pt on macOS 27 in imperator-widget-clock. Rendering `NSPopoverFrame` through `cacheDisplay`
-  makes the content look unclipped, but that bypasses the window's shape mask and is not evidence
+- **Panel footer**: `HStack(spacing: 12)`. About closes the panel before opening the About window
+- **Panel width**: floored at the brand book's 340, which every other Imperator menu bar panel uses.
+  At 300 the footer truncated "Open at Login"
+- **Panel surface**: `MenuBarPanel` lays down `NSVisualEffectView` with `.popover` material and
+  rounds itself; the SwiftUI content paints `AppColors.popoverBackground`, brand book 6.1's
+  `.black.opacity(0.15)`, over it. Nothing in the content clips or rounds a second time
 - **About panel**: brand book §10, `NSPanel` 300x260pt, computed `© 1986-<year>` line, in
   AboutPanel.swift. No `backgroundColor`, only `darkAqua`, same as imperator-widget-clock.
   `hidesOnDeactivate = false` is required: an NSPanel hides itself when the app deactivates, and an

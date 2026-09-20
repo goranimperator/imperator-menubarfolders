@@ -7,7 +7,7 @@ private var folderIDKey: UInt8 = 0
 @MainActor
 class MenuBarManager: NSObject {
     private var statusItems: [UUID: NSStatusItem] = [:]
-    private var popovers: [UUID: NSPopover] = [:]
+    private var popovers: [UUID: MenuBarPanel] = [:]
     private var activePopoverID: UUID?
     private var eventMonitor: Any?
     private var localMonitor: Any?
@@ -116,73 +116,42 @@ class MenuBarManager: NSObject {
                 NSApplication.shared.terminate(nil)
             }
         )
-        let hostingController = NSHostingController(rootView: popoverView)
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: totalWidth, height: totalHeight)
-        // Not .transient. A transient popover closes itself on any mouse-down outside
-        // it, and the status item button counts as outside, so it would already be
-        // closed by the time statusItemClicked runs. The toggle below would then read
-        // isShown as false and open it straight back up. Owning dismissal ourselves
-        // removes that race; the monitors installed in setupEventMonitors take over
-        // the outside-click and Escape handling that .transient used to provide.
-        popover.behavior = .applicationDefined
-        popover.animates = true
-        popover.delegate = self
-        popover.contentViewController = hostingController
+        // A MenuBarPanel rather than an NSPopover. macOS 27 draws its own menu
+        // bar panels as plain rounded rectangles: a 17.50 pt corner, no arrow
+        // and no animation, measured off Control Centre's Wi-Fi panel. An
+        // NSPopover draws none of that and exposes none of it for adjustment.
+        //
+        // It also brings the dismissal this app used to hand-write: the panel's
+        // own monitor leaves the status item's click to the button's action, so
+        // the toggle no longer races a panel that closed itself first.
+        let panel = MenuBarPanel(content: popoverView, width: totalWidth)
+        // The grid's height is calculated, not measured: the rows are laid out
+        // by hand and a fitting size a point short opens the panel clipped.
+        panel.contentHeight = { totalHeight }
+        panel.onClose = { [weak self] in
+            guard let self else { return }
+            if self.activePopoverID == folderID { self.activePopoverID = nil }
+        }
 
-        popovers[folderID] = popover
+        popovers[folderID] = panel
         activePopoverID = folderID
 
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
-
-        setupEventMonitors(for: folderID)
+        panel.show(from: button)
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKey()
     }
 
     private func closePopover(for folderID: UUID) {
-        popovers[folderID]?.performClose(nil)
+        popovers[folderID]?.close()
         if activePopoverID == folderID { activePopoverID = nil }
         teardownEventMonitors()
     }
 
     private func setupEventMonitors(for folderID: UUID) {
-        teardownEventMonitors()
-
-        // Click-outside dismissal, the part .transient used to handle.
-        //
-        // A global monitor is documented to see only other applications' events, but the
-        // first click into an inactive accessory app's popover reaches it too, and this
-        // app is .accessory. Closing on every event therefore shut the popover before the
-        // click landed on the app cell or toggle under the cursor. So "outside" is decided
-        // by where the pointer is, not by the monitor having fired. The status item's own
-        // frame is excluded as well, or this would close the popover a moment before
-        // statusItemClicked runs, leaving the toggle to read isShown as false and open it
-        // straight back up. Same trap as .transient, reached by a different road.
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, let popover = self.popovers[folderID], popover.isShown else { return }
-                let pointer = NSEvent.mouseLocation
-                if let window = popover.contentViewController?.view.window,
-                   window.frame.contains(pointer) {
-                    return
-                }
-                if let button = self.statusItems[folderID]?.button, let window = button.window,
-                   window.convertToScreen(button.frame).contains(pointer) {
-                    return
-                }
-                self.closePopover(for: folderID)
-            }
-        }
-
-        // Escape, which .transient used to handle for free. Returning the event keeps
-        // every other key working inside the popover.
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard event.keyCode == 53 else { return event }
-            MainActor.assumeIsolated {
-                self?.closePopover(for: folderID)
-            }
-            return nil
-        }
+        // Click-outside dismissal and Escape both live in MenuBarPanel now. It
+        // owns the same global monitor, with the same two exceptions this app
+        // had to write by hand: the pointer inside the panel, and the status
+        // item's own click, which the button's action already toggles.
     }
 
     private func teardownEventMonitors() {
@@ -197,16 +166,4 @@ class MenuBarManager: NSObject {
     }
 }
 
-extension MenuBarManager: NSPopoverDelegate {
-    /// Keeps activePopoverID honest no matter which path closed the popover, so a
-    /// later click is never blocked by a stale id.
-    func popoverDidClose(_ notification: Notification) {
-        guard let popover = notification.object as? NSPopover,
-              let id = popovers.first(where: { $0.value === popover })?.key else { return }
-        popovers.removeValue(forKey: id)
-        if activePopoverID == id {
-            activePopoverID = nil
-            teardownEventMonitors()
-        }
-    }
-}
+

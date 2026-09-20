@@ -6,7 +6,7 @@
 
 <p align="center">
   Group your apps into folders that live in the macOS menu bar. Each folder is its
-  own menu bar icon; click it and a popover drops down with the apps inside.
+  own menu bar icon; click it and a panel drops down with the apps inside.
 </p>
 
 ## Requirements
@@ -41,15 +41,15 @@ None. The app requests no Accessibility, Input Monitoring, or Automation grants,
 `/Applications/Xcode.app/Contents/Applications` to list what is installed, and launches apps through
 `NSWorkspace`.
 
-The one system integration is **Open at Login**, the toggle in the popover footer and in the
+The one system integration is **Open at Login**, the toggle in the panel footer and in the
 settings window sidebar. It calls `SMAppService.mainApp.register()`, which adds the app to Login
 Items in System Settings. Turning the toggle off unregisters it.
 
 ## Use
 
-Each folder you create becomes its own icon in the menu bar. Click an icon and a popover drops down
-with that folder's apps; click an app to launch it. Clicking the same icon again closes the popover,
-as does Escape or a click in another app. The popover footer holds the **Open at Login** toggle on
+Each folder you create becomes its own icon in the menu bar. Click an icon and a panel drops down
+with that folder's apps; click an app to launch it. Clicking the same icon again closes the panel,
+as does Escape or a click in another app. The panel footer holds the **Open at Login** toggle on
 the left, and **Settings**, **About** and **Quit** on the right.
 
 The settings window is where folders are built:
@@ -59,12 +59,12 @@ The settings window is where folders are built:
 | Sidebar `+` | Create a folder |
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
-| Columns stepper | 2 to 6 apps per row in the popover |
+| Columns stepper | 2 to 6 apps per row in the panel |
 | Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Double-click an app | Give it a custom label |
 | Drag | Reorder folders in the sidebar, or apps within a folder |
 
-The popover sizes itself from the app count and the column setting, so a folder with three apps
+The panel sizes itself from the app count and the column setting, so a folder with three apps
 does not open a window built for twelve.
 
 Deleting the last folder reopens the settings window, because with no folders there are no menu bar
@@ -136,13 +136,20 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/AppColors.swift` | Brand colour |
 | `Sources/MenuBarFolders/Models/` | `MenuBarFolder`, `AppEntry`, both `Codable` |
 | `Sources/MenuBarFolders/Services/FolderStore.swift` | `@MainActor ObservableObject`, JSON persistence |
-| `Sources/MenuBarFolders/Services/MenuBarManager.swift` | One `NSStatusItem` per folder, popover lifecycle |
+| `Sources/MenuBarFolders/Services/MenuBarManager.swift` | One `NSStatusItem` per folder, panel lifecycle |
+| `Sources/MenuBarFolders/Services/MenuBarPanel.swift` | The menu bar panel itself: corner, material, dismissal |
 | `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories, reads `LSUIElement` |
 | `Sources/MenuBarFolders/Services/LucideIcons.swift` | 138 icons as SVG element data, cached as `NSImage` |
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
-| `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, popover |
+| `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
+
+The menu bar panel is drawn by `MenuBarPanel`, an `NSPanel`, rather than by `NSPopover`. macOS 27
+draws its own menu bar panels as plain rounded rectangles with no arrow and no open or close
+animation, and `NSPopover` draws neither that shape nor that corner and exposes no radius to set.
+The measurements behind the corner, and why the constant is set higher than the corner it draws,
+are in `MenuBarPanel.swift`.
 
 A SwiftPM executable with no dependencies. `LSUIElement` is true, so there is no Dock icon; the
 status items are the entire interface. `MenuBarManager` keys each status item's click back to its
