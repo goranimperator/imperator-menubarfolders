@@ -81,6 +81,6 @@ release: check-version
 	git push origin v$(VERSION)
 	gh release create v$(VERSION) \
 		--title "$(APP_NAME) $(VERSION)" \
-		--notes "Group your apps into folders that live in the macOS menu bar. Each folder is its own menu bar icon; click it and a popover drops down with the apps inside. Pick from 138 built-in Lucide icons or paste your own SVG. Signed with a self-signed certificate and not notarized, so Gatekeeper blocks the first launch: right-click the app and choose Open, or run \`xattr -dr com.apple.quarantine \"/Applications/$(APP_NAME).app\"\`." \
+		--notes "Group your apps into folders that live in the macOS menu bar. Each folder is its own menu bar icon; click it and a panel drops down with the apps inside. Pick from 138 built-in Lucide icons or paste your own SVG. Signed with a self-signed certificate and not notarized, so Gatekeeper blocks the first launch: right-click the app and choose Open, or run \`xattr -dr com.apple.quarantine \"/Applications/$(APP_NAME).app\"\`." \
 		"$(ZIP)#$(APP_NAME) $(VERSION) (macOS)"
 	@echo "Released v$(VERSION)"
