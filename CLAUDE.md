@@ -83,7 +83,6 @@ Sources/MenuBarFolders/
   main.swift              # App bootstrap (.accessory), forced dark mode + red accent
   AppDelegate.swift       # Lifecycle, settings window, app menu with Cmd+Q
   AppColors.swift         # Centralized brand color (AppColors.brand)
-  ViewExtensions.swift    # .cursor(.pointingHand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
   Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, LucideIcons, SVGRenderer
   Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings, AboutPanel
@@ -115,7 +114,7 @@ Key rules:
   `hidesOnDeactivate = false` is required: an NSPanel hides itself when the app deactivates, and an
   .accessory app deactivates on the first click anywhere else
 - **Main-actor**: AppDelegate is `@MainActor`; main.swift builds it with `MainActor.assumeIsolated`
-- **View extensions**: Use `.cursor(.pointingHand)` on clickable non-button elements
+- **Hover cursor**: never change it. Clickable non-button elements keep the macOS default arrow, the same as the rest of the system
 - **Cryptex symlinks**: AppDiscovery uses string-based `contentsOfDirectory(atPath:)` + `resolvingSymlinksInPath()` (§22)
 - **SPM note**: Asset catalogs don't compile in SPM, so there is no asset catalog in this repo. The
   red accent comes from the UserDefaults override, and menu bar icons are rendered from SVG data

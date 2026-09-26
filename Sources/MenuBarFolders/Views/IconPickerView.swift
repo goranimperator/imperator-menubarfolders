@@ -109,7 +109,6 @@ struct IconPickerView: View {
                     .onTapGesture {
                         NSWorkspace.shared.open(URL(string: "https://lucide.dev/icons/")!)
                     }
-                    .cursor(.pointingHand)
             }
 
             ZStack(alignment: .topLeading) {
