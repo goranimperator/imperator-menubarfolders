@@ -49,14 +49,8 @@ struct FolderDetailView: View {
                 if let img = folderPreviewIcon(folder, size: 28) {
                     Image(nsImage: img)
                         .frame(width: 44, height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.primary.opacity(0.05))
-                        )
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(iconButtonHovered ? Self.hoverFill : Color.clear)
-                        )
+                        .background(iconButtonHovered ? Self.hoverFill : Color.primary.opacity(0.05))
+                        .cornerRadius(10)
                 }
             }
             .buttonStyle(.borderless)
