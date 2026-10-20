@@ -12,6 +12,11 @@ struct FolderDetailView: View {
     @State private var editingAppName: String = ""
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var appNameFieldFocused: Bool
+    @State private var iconButtonHovered = false
+
+    /// Brand book: the same hover fill the rows in Imperator DefaultBrowser use,
+    /// so a hoverable surface reads the same across the apps.
+    private static let hoverFill = AppColors.brand.opacity(0.1)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,15 +43,25 @@ struct FolderDetailView: View {
     @ViewBuilder
     private var header: some View {
         HStack(spacing: 12) {
+            // The icon is the control that opens the picker, but at rest it looks
+            // like a label. The hover fill is what says it can be clicked.
             Button(action: { showIconPicker = true }) {
                 if let img = folderPreviewIcon(folder, size: 28) {
                     Image(nsImage: img)
                         .frame(width: 44, height: 44)
-                        .background(Color.primary.opacity(0.05))
-                        .cornerRadius(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.primary.opacity(0.05))
+                        )
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(iconButtonHovered ? Self.hoverFill : Color.clear)
+                        )
                 }
             }
             .buttonStyle(.borderless)
+            .onHover { iconButtonHovered = $0 }
+            .animation(.easeInOut(duration: 0.2), value: iconButtonHovered)
             .help("Change icon")
 
             if isEditingName {

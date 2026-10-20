@@ -97,6 +97,9 @@ Key rules:
 - **Dark mode**: Forced via `NSApp.appearance = NSAppearance(named: .darkAqua)` in main.swift
 - **Accent override**: `UserDefaults.standard.set(0, forKey: "AppleAccentColor")` in main.swift
 - **HoverButton**: opacity 0.45 to 1.0, .easeInOut(0.2), defined in FolderPopoverView.swift
+- **Hover fill**: a hoverable surface that is not a HoverButton fills with
+  `AppColors.brand.opacity(0.1)` behind its own resting background, `.easeInOut(0.2)`, the same
+  value the rows in imperator-menu-bar-default-browser use
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
