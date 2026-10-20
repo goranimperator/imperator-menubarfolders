@@ -62,7 +62,7 @@ The settings window is where folders are built:
 | Columns stepper | 2 to 6 apps per row in the panel |
 | Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Double-click an app | Give it a custom label |
-| Drag | Reorder folders in the sidebar, or apps within a folder |
+| Drag | Reorder folders in the sidebar, or apps within a folder; app rows carry a grip at their left |
 
 The panel sizes itself from the app count and the column setting, so a folder with three apps
 does not open a window built for twelve.

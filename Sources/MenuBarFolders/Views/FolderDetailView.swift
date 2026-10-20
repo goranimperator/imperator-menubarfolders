@@ -55,7 +55,6 @@ struct FolderDetailView: View {
             }
             .buttonStyle(.borderless)
             .onHover { iconButtonHovered = $0 }
-            .animation(.easeInOut(duration: 0.2), value: iconButtonHovered)
             .help("Change icon")
 
             if isEditingName {
@@ -141,6 +140,11 @@ struct FolderDetailView: View {
     @ViewBuilder
     private func appRow(_ app: AppEntry) -> some View {
         HStack(alignment: .center, spacing: 10) {
+            // The rows reorder by drag, which nothing in the row said. The grip is
+            // the affordance; the drag itself is still the List's own .onMove.
+            DragGrip(hovered: hoveredApp == app.bundleIdentifier)
+                .help("Drag to reorder")
+
             Image(nsImage: app.icon)
                 .resizable()
                 .frame(width: 40, height: 40)
@@ -219,5 +223,39 @@ struct FolderDetailView: View {
                 hoveredApp = h ? app.bundleIdentifier : nil
             }
         }
+    }
+}
+
+/// Lucide `grip-vertical`, the same grip madrs-s puts at the left of a draggable
+/// row: two columns of three dots.
+///
+/// The sizes are half-points, not the 3.33pt and 1.67pt that Lucide's 24-unit
+/// box gives at 20pt. A fraction like that falls between device pixels, and each
+/// dot rounds by where it happens to land, so they come out visibly unequal.
+/// Half-points are exact at 2x.
+///
+/// Drawn rather than added to LucideIcons, which would put it in the folder icon
+/// picker.
+private struct DragGrip: View {
+    /// At rest the grip sits at the weight of the bundle name beside it, so a row
+    /// reads as one line rather than a control with a label after it. Hovering
+    /// the row brings it up to the weight of the rename and remove buttons.
+    var hovered: Bool
+
+    private static let dot: CGFloat = 3.5
+    private static let columnGap: CGFloat = 1.5
+    private static let rowGap: CGFloat = 2.5
+
+    var body: some View {
+        VStack(spacing: Self.rowGap) {
+            ForEach(0..<3, id: \.self) { _ in
+                HStack(spacing: Self.columnGap) {
+                    Circle().frame(width: Self.dot, height: Self.dot)
+                    Circle().frame(width: Self.dot, height: Self.dot)
+                }
+            }
+        }
+        .foregroundStyle(hovered ? AnyShapeStyle(Color.gray) : AnyShapeStyle(.tertiary))
+        .animation(.easeInOut(duration: 0.3), value: hovered)
     }
 }

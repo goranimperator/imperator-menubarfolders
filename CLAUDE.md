@@ -100,6 +100,10 @@ Key rules:
 - **Hover fill**: a hoverable surface that is not a HoverButton fills with
   `AppColors.brand.opacity(0.1)` behind its own resting background, `.easeInOut(0.2)`, the same
   value the rows in imperator-menu-bar-default-browser use
+- **Drag grip**: `DragGrip` in FolderDetailView.swift, two columns of three dots at the left of a
+  reorderable row. `.tertiary` at rest, `Color.gray` while the row is hovered, crossing over
+  `.easeInOut(0.3)`. The sizes are half-points on purpose: see `DRAG-GRIP.md`, which is written to
+  be handed to the other Imperator apps
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
