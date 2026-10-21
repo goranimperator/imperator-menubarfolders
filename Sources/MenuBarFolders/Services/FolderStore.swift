@@ -87,6 +87,19 @@ class FolderStore: ObservableObject {
         save()
     }
 
+    func toggleHidden(for folder: MenuBarFolder) {
+        guard let idx = folders.firstIndex(where: { $0.id == folder.id }) else { return }
+        folders[idx].isHidden.toggle()
+        save()
+        syncMenuBar()
+        // Hiding the last visible folder leaves no status items, and an
+        // LSUIElement app has no Dock icon, so closing the settings window would
+        // leave no way back in. Same trap as deleting the last folder.
+        if folders.allSatisfy({ $0.isHidden }) {
+            AppDelegate.shared?.showSettingsWindow()
+        }
+    }
+
     func reorderFolders(from source: IndexSet, to destination: Int) {
         folders.move(fromOffsets: source, toOffset: destination)
         reindex()

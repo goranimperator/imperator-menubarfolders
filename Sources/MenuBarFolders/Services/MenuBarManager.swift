@@ -21,14 +21,17 @@ class MenuBarManager: NSObject {
     }
 
     func syncStatusItems() {
+        // A hidden folder keeps its apps and its row in the settings window, but
+        // owns no status item, so it draws nothing in the menu bar.
+        let visible = store.folders.filter { !$0.isHidden }
         let currentIDs = Set(statusItems.keys)
-        let folderIDs = Set(store.folders.map { $0.id })
+        let visibleIDs = Set(visible.map { $0.id })
 
-        for id in currentIDs.subtracting(folderIDs) {
+        for id in currentIDs.subtracting(visibleIDs) {
             removeStatusItem(for: id)
         }
 
-        for folder in store.folders {
+        for folder in visible {
             if statusItems[folder.id] != nil {
                 updateStatusItem(for: folder)
             } else {

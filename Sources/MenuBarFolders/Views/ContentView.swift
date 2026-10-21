@@ -15,7 +15,6 @@ struct ContentView: View {
                 .frame(minWidth: 400)
         }
         .frame(minWidth: 700, minHeight: 500)
-        .tint(AppColors.brand)
         .sheet(isPresented: $showNewFolderSheet) {
             NewFolderSheet { name, iconName in
                 store.createFolder(name: name, iconName: iconName)
@@ -35,16 +34,7 @@ struct ContentView: View {
     @ViewBuilder
     private var sidebar: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Imperator MenuBarFolders")
-                    .font(.system(size: 13, weight: .semibold))
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-
-            Divider()
-
+            // No app name heading here: the window title bar already carries it.
             FolderListView(selectedFolder: $selectedFolder)
                 .frame(maxHeight: .infinity)
 
@@ -78,7 +68,9 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        // No background of its own: imperator-dock-folder lets the window's own
+        // dark ground through. controlBackgroundColor lifted the sidebar to a
+        // lighter grey, which the brand pill then sat on instead of the dark.
     }
 
     @ViewBuilder

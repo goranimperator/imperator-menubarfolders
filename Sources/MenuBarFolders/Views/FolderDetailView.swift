@@ -74,6 +74,8 @@ struct FolderDetailView: View {
             } else {
                 Text(folder.name)
                     .font(.system(size: 18, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .onTapGesture {
                         editingName = folder.name
                         isEditingName = true
@@ -82,33 +84,53 @@ struct FolderDetailView: View {
 
             Spacer()
 
-            HStack(spacing: 4) {
-                Image(systemName: "square.grid.3x3")
-                    .font(.system(size: 13))
-                    .foregroundStyle(AppColors.brand)
+            HStack(spacing: 6) {
+                Text("Per row")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    // Without this the label wrapped to one character per line
+                    // when the window sat at its minimum width.
+                    .fixedSize()
                 Picker("", selection: Binding(
                     get: { folder.columnsPerRow },
                     set: { store.updateColumns(for: folder, columns: $0) }
                 )) {
-                    ForEach(2...6, id: \.self) { n in
+                    ForEach(Self.columnOptions, id: \.self) { n in
                         Text("\(n)").tag(n)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 50)
+                .frame(width: 60)
+                // main.swift forces the system accent to the brand red, so every
+                // stock control inherits it and the number came out red. An
+                // explicit tint puts this one back on the neutral the rest of
+                // the header uses.
+                .tint(.primary)
             }
-            .frame(height: 28)
-            .help("Columns per row")
+            .help("How many apps the panel shows per row")
 
+            // The stock macOS button, no style and no tint, same as
+            // imperator-dock-folder. Bordered prominent in brand red made this
+            // the loudest thing in the header.
             Button(action: { showAppPicker = true }) {
-                Label("Add Apps", systemImage: "plus")
-                    .font(.system(size: 13))
+                Label("Add Apps", systemImage: "plus.app")
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.brand)
+            // Same reason as the Per page picker: the forced accent would make
+            // this label and its glyph red.
+            .tint(.primary)
         }
-        .padding(20)
+        // Even on all four sides. Split horizontal and vertical, the right gap
+        // came out larger than the left: the icon and Add Apps are buttons and
+        // carry their own chrome, which eats into the leading inset but not the
+        // trailing one.
+        .padding(Self.paneInset)
     }
+
+    private static let columnOptions = [2, 3, 4, 5, 6]
+
+    /// The one horizontal inset for every row in this pane: the header, the grid
+    /// bar and the app rows. Left to each view's own default they drifted a few
+    /// points apart and nothing lined up down the left edge.
+    static let paneInset: CGFloat = 12
 
     @ViewBuilder
     private var appList: some View {
@@ -133,7 +155,12 @@ struct FolderDetailView: View {
                     store.reorderApps(in: folder, from: source, to: destination)
                 }
             }
-            .listStyle(.inset)
+            // .plain, not .inset: the inset style adds a margin of its own, which
+            // pushed the app rows about 17pt further in than the header above
+            // them. A plain list keeps only the 8pt the row insets below top up
+            // to paneInset.
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
     }
 
@@ -142,8 +169,9 @@ struct FolderDetailView: View {
         HStack(alignment: .center, spacing: 10) {
             // The rows reorder by drag, which nothing in the row said. The grip is
             // the affordance; the drag itself is still the List's own .onMove.
-            DragGrip(hovered: hoveredApp == app.bundleIdentifier)
+            DragGrip()
                 .help("Drag to reorder")
+                .foregroundStyle(.tertiary)
 
             Image(nsImage: app.icon)
                 .resizable()
@@ -217,45 +245,21 @@ struct FolderDetailView: View {
                 .buttonStyle(.borderless)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Self.paneInset)
+        // A plain List keeps 8pt of its own leading inset even when these are
+        // set, so this is what is left to reach paneInset and line the grips up
+        // with the header icon.
+        .listRowInsets(EdgeInsets(top: 0, leading: Self.paneInset - 8,
+                                  bottom: 0, trailing: Self.paneInset - 8))
+        // Left alone the separator starts under the app name and runs to the
+        // window edge. These pin it to the row's own edges, so it ends up the
+        // same 12pt in on both sides as everything else in the pane.
+        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+        .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
         .onHover { h in
             withAnimation(.easeInOut(duration: 0.1)) {
                 hoveredApp = h ? app.bundleIdentifier : nil
             }
         }
-    }
-}
-
-/// Lucide `grip-vertical`, the same grip madrs-s puts at the left of a draggable
-/// row: two columns of three dots.
-///
-/// The sizes are half-points, not the 3.33pt and 1.67pt that Lucide's 24-unit
-/// box gives at 20pt. A fraction like that falls between device pixels, and each
-/// dot rounds by where it happens to land, so they come out visibly unequal.
-/// Half-points are exact at 2x.
-///
-/// Drawn rather than added to LucideIcons, which would put it in the folder icon
-/// picker.
-private struct DragGrip: View {
-    /// At rest the grip sits at the weight of the bundle name beside it, so a row
-    /// reads as one line rather than a control with a label after it. Hovering
-    /// the row brings it up to the weight of the rename and remove buttons.
-    var hovered: Bool
-
-    private static let dot: CGFloat = 3.5
-    private static let columnGap: CGFloat = 1.5
-    private static let rowGap: CGFloat = 2.5
-
-    var body: some View {
-        VStack(spacing: Self.rowGap) {
-            ForEach(0..<3, id: \.self) { _ in
-                HStack(spacing: Self.columnGap) {
-                    Circle().frame(width: Self.dot, height: Self.dot)
-                    Circle().frame(width: Self.dot, height: Self.dot)
-                }
-            }
-        }
-        .foregroundStyle(hovered ? AnyShapeStyle(Color.gray) : AnyShapeStyle(.tertiary))
-        .animation(.easeInOut(duration: 0.3), value: hovered)
     }
 }

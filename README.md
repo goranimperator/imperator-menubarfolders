@@ -59,16 +59,20 @@ The settings window is where folders are built:
 | Sidebar `+` | Create a folder |
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
-| Columns stepper | 2 to 6 apps per row in the panel |
+| Per row | 2 to 6 apps per row in the panel |
 | Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Double-click an app | Give it a custom label |
-| Drag | Reorder folders in the sidebar, or apps within a folder; app rows carry a grip at their left |
+| Eye | Hide a folder from the menu bar, or bring it back |
+| Drag | Reorder folders in the sidebar, or apps within a folder; both carry a grip at their left |
 
 The panel sizes itself from the app count and the column setting, so a folder with three apps
 does not open a window built for twelve.
 
-Deleting the last folder reopens the settings window, because with no folders there are no menu bar
-icons, and with no Dock icon there would be no way back in.
+A hidden folder keeps its apps and its row in the settings window; it just owns no menu bar icon.
+The eye beside the app count toggles it.
+
+Deleting the last folder reopens the settings window, and so does hiding the last visible one:
+either way no menu bar icons are left, and with no Dock icon there would be no way back in.
 
 Folders are stored as one JSON file:
 
@@ -142,6 +146,7 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Services/LucideIcons.swift` | 138 icons as SVG element data, cached as `NSImage` |
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
+| `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
 

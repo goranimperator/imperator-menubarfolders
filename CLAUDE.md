@@ -100,10 +100,22 @@ Key rules:
 - **Hover fill**: a hoverable surface that is not a HoverButton fills with
   `AppColors.brand.opacity(0.1)` behind its own resting background, `.easeInOut(0.2)`, the same
   value the rows in imperator-menu-bar-default-browser use
-- **Drag grip**: `DragGrip` in FolderDetailView.swift, two columns of three dots at the left of a
-  reorderable row. `.tertiary` at rest, `Color.gray` while the row is hovered, crossing over
-  `.easeInOut(0.3)`. The sizes are half-points on purpose: see `DRAG-GRIP.md`, which is written to
-  be handed to the other Imperator apps
+- **Drag grip**: `DragGrip.swift`, two columns of three dots at the left of a reorderable row, shared
+  by the sidebar and the app list. It carries no colour of its own; the caller sets
+  `foregroundStyle`. The sizes are half-points on purpose: see `DRAG-GRIP.md`, written to be handed
+  to the other Imperator apps
+- **Sidebar rows**: ported from imperator-dock-folder. The brand fill rides on the padded content
+  through `.background(RoundedRectangle(cornerRadius: 6))`, never on `listRowBackground`: that one
+  is clipped to the row box, whose trailing edge the list keeps a few points inside the sidebar, so
+  the right margin can never be made to match the left. The four constants at the top of
+  FolderListView.swift build the margins; `boxInsetLeading`/`boxInsetTrailing` are measured values,
+  so one re-measure fixes the row if AppKit changes them
+- **Detail pane inset**: one constant, `FolderDetailView.paneInset`, for the header, the app rows and
+  their separators, so everything lines up down both edges. The app list is `.listStyle(.plain)`:
+  `.inset` adds a margin of its own and pushed the rows ~17pt further in than the header
+- **Hidden folders**: `MenuBarFolder.isHidden`. `syncStatusItems` filters on it, so a hidden folder
+  keeps its apps and its settings row but owns no status item. Hiding the last visible folder
+  reopens the settings window, the same guard deleting the last folder uses
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
   and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size

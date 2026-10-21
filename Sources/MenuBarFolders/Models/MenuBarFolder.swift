@@ -8,8 +8,10 @@ struct MenuBarFolder: Identifiable, Codable, Hashable {
     var apps: [AppEntry]
     var order: Int
     var columnsPerRow: Int
+    /// Hidden folders keep their apps but get no menu bar icon.
+    var isHidden: Bool
 
-    init(name: String, iconName: String = "folder", customSVG: String? = nil, apps: [AppEntry] = [], order: Int = 0, columnsPerRow: Int = 3) {
+    init(name: String, iconName: String = "folder", customSVG: String? = nil, apps: [AppEntry] = [], order: Int = 0, columnsPerRow: Int = 3, isHidden: Bool = false) {
         self.id = UUID()
         self.name = name
         self.iconName = iconName
@@ -17,6 +19,7 @@ struct MenuBarFolder: Identifiable, Codable, Hashable {
         self.apps = apps
         self.order = order
         self.columnsPerRow = columnsPerRow
+        self.isHidden = isHidden
     }
 
     init(from decoder: Decoder) throws {
@@ -28,6 +31,8 @@ struct MenuBarFolder: Identifiable, Codable, Hashable {
         apps = try container.decode([AppEntry].self, forKey: .apps)
         order = try container.decode(Int.self, forKey: .order)
         columnsPerRow = try container.decodeIfPresent(Int.self, forKey: .columnsPerRow) ?? 3
+        // Added after 1.1.1, so folders.json written before it has no key here.
+        isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
     }
 
     static func == (lhs: MenuBarFolder, rhs: MenuBarFolder) -> Bool {
