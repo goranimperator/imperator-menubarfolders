@@ -60,7 +60,7 @@ The settings window is where folders are built:
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
 | Per row | 2 to 6 apps per row in the panel |
-| Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
+| Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Double-click an app | Give it a custom label |
 | Eye | Hide a folder from the menu bar, or bring it back |
 | Drag | Reorder folders in the sidebar, or apps within a folder; both carry a grip at their left |

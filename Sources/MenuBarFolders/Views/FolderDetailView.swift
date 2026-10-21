@@ -112,7 +112,7 @@ struct FolderDetailView: View {
             // imperator-dock-folder. Bordered prominent in brand red made this
             // the loudest thing in the header.
             Button(action: { showAppPicker = true }) {
-                Label("Add Apps", systemImage: "plus.app")
+                Label("Apps", systemImage: "plus.app")
             }
             // Same reason as the Per page picker: the forced accent would make
             // this label and its glyph red.
