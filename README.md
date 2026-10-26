@@ -38,8 +38,10 @@ settings window opens on its own.
 
 None. The app requests no Accessibility, Input Monitoring, or Automation grants, and declares no
 `NSUsage` keys. It reads `/Applications`, `/System/Applications`, `~/Applications` and
-`/Applications/Xcode.app/Contents/Applications` to list what is installed, and launches apps through
-`NSWorkspace`.
+`/Applications/Xcode.app/Contents/Applications` to list what is installed, reads mounted external
+drives when **Scan drives for apps** is on, and launches apps through `NSWorkspace`. **Choose App…**
+in the app picker opens the standard `NSOpenPanel`, so an app anywhere else on disk is reached by
+the file dialog rather than by a wider scan.
 
 The one system integration is **Open at Login**, the toggle in the panel footer and in the
 settings window sidebar. It calls `SMAppService.mainApp.register()`, which adds the app to Login
@@ -56,17 +58,27 @@ The settings window is where folders are built:
 
 | Control | What it does |
 |---------|--------------|
+| Scan drives for apps | Look for apps on mounted external drives, with one switch per drive under it |
 | Sidebar `+` | Create a folder |
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
 | Per row | 2 to 6 apps per row in the panel |
 | Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
+| Choose App… | Pick an app anywhere on disk, for anything the scan does not reach |
 | Double-click an app | Give it a custom label |
 | Eye | Hide a folder from the menu bar, or bring it back |
 | Drag | Reorder folders in the sidebar, or apps within a folder; both carry a grip at their left |
 
 The panel sizes itself from the app count and the column setting, so a folder with three apps
 does not open a window built for twelve.
+
+**Scan drives for apps** sits at the top of the sidebar and is on by default. The four standard app
+directories are walked in full; a mounted external drive is walked three levels deep, which reaches
+an app on the disk itself, in a folder on it, and one below that. The cap is there because a drive
+is a whole filesystem, and a Time Machine store is skipped outright. Each mounted drive gets its own
+switch under the master one, keyed by the name Finder shows, so turning a drive off survives
+unplugging it. Anything deeper than the cap, on a network share, or on a drive you switched off is
+reached with **Choose App…** in the app picker.
 
 A hidden folder keeps its apps and its row in the settings window; it just owns no menu bar icon.
 The eye beside the app count toggles it.
@@ -142,11 +154,12 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Services/FolderStore.swift` | `@MainActor ObservableObject`, JSON persistence |
 | `Sources/MenuBarFolders/Services/MenuBarManager.swift` | One `NSStatusItem` per folder, panel lifecycle |
 | `Sources/MenuBarFolders/Services/MenuBarPanel.swift` | The menu bar panel itself: corner, material, dismissal |
-| `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories, reads `LSUIElement` |
+| `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories and external drives, reads `LSUIElement` |
 | `Sources/MenuBarFolders/Services/LucideIcons.swift` | 138 icons as SVG element data, cached as `NSImage` |
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
 | `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
+| `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches at the top of the sidebar |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
 
@@ -167,7 +180,10 @@ tints them for light and dark menu bars.
 
 `AppDiscovery` lists apps with the string-based `contentsOfDirectory(atPath:)` and then resolves
 symlinks, because on macOS Sequoia and later some system apps are Cryptex symlinks that the
-URL-based API skips.
+URL-based API skips. Its walk carries a depth budget rather than a flat listing: `nil` for the four
+standard directories, which are small and known, and 3 for a mounted drive, which is a whole
+filesystem. The guard that stops the descent sits after the `.app` check, so a bundle sitting
+exactly at the limit is still collected.
 
 ## Third-party
 

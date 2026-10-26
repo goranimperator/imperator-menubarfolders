@@ -53,7 +53,13 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 - NSStatusItem + MenuBarPanel, the app's own `NSPanel`, not `NSPopover`
 - HSplitView settings window (from imperator-dock-folder)
 - Lucide icons as SVG element strings → SVGRenderer → NSImage with isTemplate=true
-- AppDiscovery scans /Applications using string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+)
+- AppDiscovery scans with string-based contentsOfDirectory (Cryptex-safe for macOS Sequoia+) and
+  carries a depth budget: `nil` for the four standard directories, `3` for a mounted external drive.
+  The descent guard sits after the `.app` check, so a bundle at the limit is still collected.
+  `Backups.backupdb` is never descended into: a Time Machine store holds every app of every
+  backed-up Mac. `VolumeScanSettings` lives in the same file and keys exclusions by volume name, not
+  mount path, so the choice survives unplugging the disk. Anything the scan cannot reach is added
+  with the `NSOpenPanel` behind **Choose App…** in the picker
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Panel height calculated mathematically per folder (columns × rows) and handed to the panel through
   `contentHeight`, because a SwiftUI fitting size a point short opens the panel clipped
@@ -113,6 +119,12 @@ Key rules:
 - **Detail pane inset**: one constant, `FolderDetailView.paneInset`, for the header, the app rows and
   their separators, so everything lines up down both edges. The app list is `.listStyle(.plain)`:
   `.inset` adds a margin of its own and pushed the rows ~17pt further in than the header
+- **External drives**: `ExternalDrivesView` sits at the top of the sidebar, above the folder list,
+  not in the footer. The master switch is **Scan drives for apps**; one row per mounted drive follows,
+  indented 12pt, and the list refreshes on `NSWorkspace.didMountNotification` and
+  `didUnmountNotification`. The per-drive switch reads as "scan this drive", so it is the inverse of
+  the stored exclusion. Every switch repeats LaunchAtLoginToggle's shape: `.switch`,
+  `scaleEffect(0.55)`, `.tint(AppColors.brand)`, no frame and no cursor modifier
 - **Hidden folders**: `MenuBarFolder.isHidden`. `syncStatusItems` filters on it, so a hidden folder
   keeps its apps and its settings row but owns no status item. Hiding the last visible folder
   reopens the settings window, the same guard deleting the last folder uses

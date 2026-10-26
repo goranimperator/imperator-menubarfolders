@@ -35,6 +35,12 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             // No app name heading here: the window title bar already carries it.
+            // The drive scan sits above the folders instead: it decides what the app
+            // picker can even offer, so it belongs before the list it feeds.
+            ExternalDrivesView()
+
+            Divider()
+
             FolderListView(selectedFolder: $selectedFolder)
                 .frame(maxHeight: .infinity)
 

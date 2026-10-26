@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct AppPickerView: View {
     let folder: MenuBarFolder
@@ -7,6 +8,7 @@ struct AppPickerView: View {
     @State private var searchText = ""
     @State private var allApps: [DiscoveredApp] = []
     @State private var selectedIDs: Set<String> = []
+    @State private var isScanning = true
 
     private var filteredApps: [DiscoveredApp] {
         if searchText.isEmpty { return allApps }
@@ -46,17 +48,70 @@ struct AppPickerView: View {
 
             Divider()
 
+            content
+
+            Divider()
+
+            HStack {
+                // The scan is a heuristic and never complete: it stops at the depth cap,
+                // skips drives the user switched off, and never looks at network shares.
+                // The file dialog reaches an app anywhere.
+                Button(action: chooseAppFromDisk) {
+                    Label("Choose App…", systemImage: "folder")
+                }
+                // main.swift forces the system accent to the brand red, so a stock
+                // button's label and glyph would come out red. Same reason the detail
+                // header puts its controls back on the neutral.
+                .tint(.primary)
+
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+        }
+        .frame(width: 400, height: 500)
+        .task {
+            let apps = await Task.detached(priority: .userInitiated) {
+                AppDiscovery.installedApps()
+            }.value
+            allApps = apps
+            isScanning = false
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isScanning {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppColors.brand)
+                Text("Looking for apps")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if filteredApps.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.tertiary)
+                Text(searchText.isEmpty ? "No apps found" : "No apps match \"\(searchText)\"")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text("Use Choose App… to pick one from anywhere on disk.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
             List(filteredApps) { app in
                 appRow(app)
             }
             .listStyle(.inset)
-        }
-        .frame(width: 400, height: 500)
-        .onAppear {
-            Task.detached {
-                let apps = AppDiscovery.installedApps()
-                await MainActor.run { allApps = apps }
-            }
         }
     }
 
@@ -105,6 +160,33 @@ struct AppPickerView: View {
             }
         }
         .opacity(alreadyAdded ? 0.5 : 1.0)
+    }
+
+    /// Picked apps go into the list already selected rather than straight into the folder,
+    /// so everything in this sheet is added by the one Done button.
+    private func chooseAppFromDisk() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.prompt = "Choose"
+        panel.message = "Choose an app to add to this folder"
+
+        guard panel.runModal() == .OK else { return }
+
+        for url in panel.urls {
+            guard let app = AppDiscovery.discoveredApp(at: url) else { continue }
+            if !allApps.contains(where: { $0.bundleIdentifier == app.bundleIdentifier }) {
+                allApps.insert(app, at: 0)
+            }
+            guard !existingBundleIDs.contains(app.bundleIdentifier) else { continue }
+            selectedIDs.insert(app.bundleIdentifier)
+        }
+
+        // A search term that does not match the chosen app would otherwise hide the row
+        // the user just picked.
+        searchText = ""
     }
 
     private func addSelectedAndClose() {
