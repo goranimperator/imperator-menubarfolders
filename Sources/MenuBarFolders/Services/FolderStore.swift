@@ -1,9 +1,15 @@
 import Foundation
+import Observation
 import SwiftUI
 
+/// `@Observable` rather than `ObservableObject`: an `objectWillChange` send
+/// re-renders every view observing the store, so hiding one folder redrew the whole
+/// settings window. Observation tracks the properties a view actually read, which is
+/// what keeps the reordering rows from being redrawn by changes they do not use.
 @MainActor
-class FolderStore: ObservableObject {
-    @Published var folders: [MenuBarFolder] = []
+@Observable
+final class FolderStore {
+    var folders: [MenuBarFolder] = []
 
     private let storageURL: URL
 
@@ -100,16 +106,21 @@ class FolderStore: ObservableObject {
         }
     }
 
-    func reorderFolders(from source: IndexSet, to destination: Int) {
-        folders.move(fromOffsets: source, toOffset: destination)
+    /// Takes the whole order rather than a move, because the rows reorder by hand
+    /// now: the list has already settled into this arrangement by the time the
+    /// drag ends, and this is the one write that drop makes.
+    func reorderFolders(to ordered: [MenuBarFolder]) {
+        guard ordered.count == folders.count else { return }
+        folders = ordered
         reindex()
         save()
         syncMenuBar()
     }
 
-    func reorderApps(in folder: MenuBarFolder, from source: IndexSet, to destination: Int) {
-        guard let idx = folders.firstIndex(where: { $0.id == folder.id }) else { return }
-        folders[idx].apps.move(fromOffsets: source, toOffset: destination)
+    func reorderApps(in folder: MenuBarFolder, to ordered: [AppEntry]) {
+        guard let idx = folders.firstIndex(where: { $0.id == folder.id }),
+              ordered.count == folders[idx].apps.count else { return }
+        folders[idx].apps = ordered
         save()
     }
 

@@ -43,9 +43,12 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
 
 ## Architecture
 
-- **SPM** (Package.swift): swift-tools-version 6.4 with `swiftLanguageMode(.v5)`, deployment target macOS 14
+- **SPM** (Package.swift): swift-tools-version 6.4 with `swiftLanguageMode(.v6)`,
+  `defaultIsolation(MainActor.self)` and `NonisolatedNonsendingByDefault`, deployment target macOS 14.
+  Everything is `@MainActor` unless it says `nonisolated`, and the compiler rejects data races rather
+  than warning about them
 - **LSUIElement**: menu bar only, no dock icon
-- **MVVM**: FolderStore (ObservableObject) → Views
+- **MVVM**: FolderStore (`@Observable`) → Views, read with `@Environment(FolderStore.self)`
 - **Persistence**: `~/Library/Application Support/MenuBarFolders/folders.json`
 
 ### Key patterns
@@ -60,6 +63,20 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
   backed-up Mac. `VolumeScanSettings` lives in the same file and keys exclusions by volume name, not
   mount path, so the choice survives unplugging the disk. Anything the scan cannot reach is added
   with the `NSOpenPanel` behind **Choose App…** in the picker
+- **Reordering**: both row lists, the sidebar folders and the detail pane's app rows, position
+  their rows by hand inside a `ScrollView` and reorder with a plain `DragGesture`, ported from
+  imperator-dock-folder 1.0.8. A `List` with `.onMove` runs a system drag session on macOS: a
+  translucent snapshot follows the pointer and an insertion line marks the target while the rows
+  stay put until the drop. Here the row lifts and the others slide. This departs from brand book
+  7.18 on purpose. The shape is the same in both files: an `order` array of ids that the rows read
+  their slot from, a `lifted` struct holding the pointer position and the grab offset, a `rowPitch`
+  measured off a rendered row with `onGeometryChange`, `spring(response: 0.32, dampingFraction:
+  0.8)` as the settle, `.levelChange` haptics on lift and `.alignment` on each slot change, and one
+  write on drop through `reorderFolders(to:)` / `reorderApps(in:to:)`. `minimumDistance: 3` on a
+  `simultaneousGesture` keeps taps, double-click rename and the row buttons working; a row whose
+  rename field is open passes the drag to the field with `including: .subviews`. There is no
+  auto-scroll past the visible rows. `reorderable()` / `reorderContainer(for:)` do this natively but
+  need macOS 27, so they stay out while the minimum is 14
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Panel height calculated mathematically per folder (columns × rows) and handed to the panel through
   `contentHeight`, because a SwiftUI fitting size a point short opens the panel clipped
@@ -111,16 +128,20 @@ Key rules:
   `foregroundStyle`. The sizes are half-points on purpose: see `DRAG-GRIP.md`, written to be handed
   to the other Imperator apps
 - **Sidebar rows**: ported from imperator-dock-folder. The brand fill rides on the padded content
-  through `.background(RoundedRectangle(cornerRadius: 6))`, never on `listRowBackground`: that one
-  is clipped to the row box, whose trailing edge the list keeps a few points inside the sidebar, so
-  the right margin can never be made to match the left. The four constants at the top of
-  FolderListView.swift build the margins; `boxInsetLeading`/`boxInsetTrailing` are measured values,
-  so one re-measure fixes the row if AppKit changes them
+  through `.background(RoundedRectangle(cornerRadius: 6))`. There is no `List` any more, so there is
+  no row box either: the outer padding is the plain `gap` on both sides and `boxInsetLeading` /
+  `boxInsetTrailing` are gone with it. The folder name sits above the app count in one
+  `VStack(alignment: .leading, spacing: 2)`. The trailing `HStack` takes `spacing: isHovered ?
+  itemGap : 0`, so at rest the eye is the last thing in the row and lands on the margin instead of
+  holding open the gap where the hidden trash would be
 - **Detail pane inset**: one constant, `FolderDetailView.paneInset`, for the header, the app rows and
   their separators, so everything lines up down both edges. The app list is `.listStyle(.plain)`:
   `.inset` adds a margin of its own and pushed the rows ~17pt further in than the header
-- **External drives**: `ExternalDrivesView` sits at the top of the sidebar, above the folder list,
-  not in the footer. The master switch is **Scan drives for apps**; one row per mounted drive follows,
+- **External drives**: `ExternalDrivesView` sits under the Add Folder row and above Open at Login,
+  with the other controls that put apps into a folder. The master switch is **Scan drives for
+  apps**, pulled right by `switchSideBearing` because the macOS 27 switch claims 54pt in layout and
+  `scaleEffect(0.55)` paints 29.7 of them, so the drawn edge would otherwise sit 12pt inside the
+  margin; one row per mounted drive follows,
   indented 12pt, and the list refreshes on `NSWorkspace.didMountNotification` and
   `didUnmountNotification`. The per-drive switch reads as "scan this drive", so it is the inverse of
   the stored exclusion. Every switch repeats LaunchAtLoginToggle's shape: `.switch`,
@@ -152,7 +173,9 @@ Key rules:
 
 ## Conventions
 
-- @MainActor on store and manager classes
+- `defaultIsolation(MainActor.self)` makes @MainActor the default; only `nonisolated` is worth
+  writing. `AppDiscovery`, `VolumeScanSettings` and `DiscoveredApp` are `nonisolated` because the
+  picker scans in a detached task, and `MenuBarPanel.stopMonitoring()` is, because `deinit` is
 - English only in filenames, comments, UI strings, and file content
 - Commit messages in English
 - No new libraries/patterns without checking existing codebase first

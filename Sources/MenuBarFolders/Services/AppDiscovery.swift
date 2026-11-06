@@ -1,6 +1,6 @@
 import AppKit
 
-struct DiscoveredApp: Identifiable {
+nonisolated struct DiscoveredApp: Identifiable {
     let url: URL
     let name: String
     let bundleIdentifier: String
@@ -16,7 +16,7 @@ struct DiscoveredApp: Identifiable {
 /// `/Volumes/<name>`, the name is what Finder shows, and keying on the name means the
 /// choice survives unplugging the disk, which is the one moment its row disappears from
 /// the settings window.
-enum VolumeScanSettings {
+nonisolated enum VolumeScanSettings {
     static let scanEnabledKey = "scanExternalDrives"
     static let excludedVolumesKey = "excludedVolumeNames"
 
@@ -34,7 +34,11 @@ enum VolumeScanSettings {
     }
 }
 
-enum AppDiscovery {
+/// `nonisolated` because the app picker runs the scan in a detached task: with the
+/// main actor as the default isolation, a main-actor scan would hop back and freeze
+/// the sheet for as long as the walk takes. Nothing here touches NSApp, a window or
+/// a view; `NSWorkspace.icon(forFile:)` and `Bundle` are the only AppKit calls.
+nonisolated enum AppDiscovery {
     /// The four paths every Mac keeps its apps in. Scanned at `fixedPathScanDepth`.
     private static let fixedSearchPaths = [
         "/Applications",

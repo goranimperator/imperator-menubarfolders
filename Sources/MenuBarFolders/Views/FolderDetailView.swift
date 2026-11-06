@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FolderDetailView: View {
     @Binding var folder: MenuBarFolder
-    @EnvironmentObject var store: FolderStore
+    @Environment(FolderStore.self) private var store
     @State private var editingName: String = ""
     @State private var isEditingName = false
     @State private var showAppPicker = false
@@ -13,6 +13,28 @@ struct FolderDetailView: View {
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var appNameFieldFocused: Bool
     @State private var iconButtonHovered = false
+
+    /// Display order as bundle ids. Follows the folder, except while a row is
+    /// lifted, when it is the live order the other rows slide into.
+    @State private var appOrder: [String] = []
+    @State private var lifted: LiftedRow?
+    /// Height of one app row. Measured off a rendered row; the starting value is
+    /// the 40pt icon plus the padding above and below it.
+    @State private var rowPitch: CGFloat = 64
+
+    private struct LiftedRow {
+        let id: String
+        /// Pointer position in the list's coordinate space.
+        var pointerY: CGFloat
+        /// Pointer minus row centre when lifted, so the row stays where it was
+        /// grabbed instead of jumping to centre on the pointer.
+        let grab: CGFloat
+        let startOrder: [String]
+    }
+
+    private static let space = "appList"
+    /// The same settle the sidebar uses, so both lists reorder alike.
+    private static let settle = Animation.spring(response: 0.32, dampingFraction: 0.8)
 
     /// Brand book: the same hover fill the rows in Imperator DefaultBrowser use,
     /// so a hoverable surface reads the same across the apps.
@@ -147,28 +169,134 @@ struct FolderDetailView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List {
-                ForEach(folder.apps) { app in
-                    appRow(app)
-                }
-                .onMove { source, destination in
-                    store.reorderApps(in: folder, from: source, to: destination)
+            // Positioned rows rather than a List, the same as the sidebar: a List
+            // reorders through a system drag session, where a translucent
+            // snapshot follows the pointer and the rows stay put until the drop.
+            // Here the row lifts and the others slide out of its way.
+            //
+            // The List's own 8pt leading inset is gone with it, so the rows carry
+            // the full paneInset themselves and the separators are drawn here
+            // instead of by listRowSeparator.
+            GeometryReader { geo in
+                ScrollView {
+                    ZStack(alignment: .topLeading) {
+                        ForEach(orderedApps) { app in
+                            appRow(app, isLast: app.id == appOrder.last)
+                                .frame(width: geo.size.width)
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                                    if height > 0 && abs(height - rowPitch) > 0.5 { rowPitch = height }
+                                }
+                                .scaleEffect(lifted?.id == app.id ? 1.03 : 1)
+                                .shadow(
+                                    color: .black.opacity(lifted?.id == app.id ? 0.45 : 0),
+                                    radius: lifted?.id == app.id ? 12 : 0,
+                                    y: lifted?.id == app.id ? 6 : 0
+                                )
+                                .position(x: geo.size.width / 2, y: centerY(of: app))
+                                .zIndex(lifted?.id == app.id ? 1 : 0)
+                                .animation(Self.settle, value: lifted?.id == app.id)
+                                // minimumDistance 3, so a click that does not move
+                                // still reaches the rename double-tap and the
+                                // pencil and remove buttons. A row with its label
+                                // field open passes the drag to the field instead
+                                // of lifting.
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 3, coordinateSpace: .named(Self.space))
+                                        .onChanged { value in drag(app, value) }
+                                        .onEnded { _ in drop() },
+                                    including: editingAppId == app.id ? .subviews : .all
+                                )
+                                .accessibilityAction(named: "Move Up") { move(app, by: -1) }
+                                .accessibilityAction(named: "Move Down") { move(app, by: 1) }
+                                .transition(.opacity)
+                        }
+                    }
+                    .frame(width: geo.size.width,
+                           height: CGFloat(orderedApps.count) * rowPitch)
+                    .coordinateSpace(name: Self.space)
                 }
             }
-            // .plain, not .inset: the inset style adds a margin of its own, which
-            // pushed the app rows about 17pt further in than the header above
-            // them. A plain list keeps only the 8pt the row insets below top up
-            // to paneInset.
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+            .onAppear { appOrder = folder.apps.map(\.id) }
+            .onChange(of: folder.apps.map(\.id)) { _, ids in
+                guard lifted == nil, ids != appOrder else { return }
+                withAnimation(Self.settle) { appOrder = ids }
+            }
         }
     }
 
+    private var orderedApps: [AppEntry] {
+        let byId = Dictionary(folder.apps.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<String>()
+        var result: [AppEntry] = []
+        for id in appOrder {
+            if let app = byId[id], seen.insert(id).inserted { result.append(app) }
+        }
+        for app in folder.apps where seen.insert(app.id).inserted { result.append(app) }
+        return result
+    }
+
+    private func centerY(of app: AppEntry) -> CGFloat {
+        if let lifted, lifted.id == app.id {
+            return lifted.pointerY - lifted.grab
+        }
+        let index = appOrder.firstIndex(of: app.id) ?? appOrder.count
+        return (CGFloat(index) + 0.5) * rowPitch
+    }
+
+    private func drag(_ app: AppEntry, _ value: DragGesture.Value) {
+        if lifted == nil {
+            lifted = LiftedRow(
+                id: app.id,
+                pointerY: value.startLocation.y,
+                grab: value.startLocation.y - centerY(of: app),
+                startOrder: appOrder
+            )
+            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
+        }
+        guard var current = lifted, current.id == app.id else { return }
+        current.pointerY = value.location.y
+        lifted = current
+
+        let rowCenter = current.pointerY - current.grab
+        let target = min(max(Int((rowCenter / rowPitch).rounded(.down)), 0), appOrder.count - 1)
+        if let from = appOrder.firstIndex(of: app.id), from != target {
+            withAnimation(Self.settle) {
+                appOrder.remove(at: from)
+                appOrder.insert(app.id, at: target)
+            }
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
+    }
+
+    private func drop() {
+        guard let current = lifted else { return }
+        withAnimation(Self.settle) { lifted = nil }
+        if appOrder != current.startOrder { commitOrder() }
+    }
+
+    /// Keyboard and VoiceOver path: the List this replaced had none either, but a
+    /// row that only a pointer can move is a control half finished.
+    private func move(_ app: AppEntry, by step: Int) {
+        guard let from = appOrder.firstIndex(of: app.id) else { return }
+        let to = min(max(from + step, 0), appOrder.count - 1)
+        guard to != from else { return }
+        withAnimation(Self.settle) {
+            appOrder.remove(at: from)
+            appOrder.insert(app.id, at: to)
+        }
+        commitOrder()
+    }
+
+    private func commitOrder() {
+        let byId = Dictionary(folder.apps.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        store.reorderApps(in: folder, to: appOrder.compactMap { byId[$0] })
+    }
+
     @ViewBuilder
-    private func appRow(_ app: AppEntry) -> some View {
+    private func appRow(_ app: AppEntry, isLast: Bool) -> some View {
         HStack(alignment: .center, spacing: 10) {
             // The rows reorder by drag, which nothing in the row said. The grip is
-            // the affordance; the drag itself is still the List's own .onMove.
+            // the affordance.
             DragGrip()
                 .help("Drag to reorder")
                 .foregroundStyle(.tertiary)
@@ -245,17 +373,19 @@ struct FolderDetailView: View {
                 .buttonStyle(.borderless)
             }
         }
+        .padding(.horizontal, Self.paneInset)
         .padding(.vertical, Self.paneInset)
-        // A plain List keeps 8pt of its own leading inset even when these are
-        // set, so this is what is left to reach paneInset and line the grips up
-        // with the header icon.
-        .listRowInsets(EdgeInsets(top: 0, leading: Self.paneInset - 8,
-                                  bottom: 0, trailing: Self.paneInset - 8))
-        // Left alone the separator starts under the app name and runs to the
-        // window edge. These pin it to the row's own edges, so it ends up the
-        // same 12pt in on both sides as everything else in the pane.
-        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
-        .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Drawn here rather than by the List that used to supply it, inset to
+        // paneInset on both sides so it lines up with the header and the rows.
+        // The lifted row carries none: a line travelling with a floating row
+        // reads as a row that has not left its slot.
+        .overlay(alignment: .bottom) {
+            if !isLast && lifted?.id != app.id {
+                Divider().padding(.horizontal, Self.paneInset)
+            }
+        }
+        .contentShape(Rectangle())
         .onHover { h in
             withAnimation(.easeInOut(duration: 0.1)) {
                 hoveredApp = h ? app.bundleIdentifier : nil

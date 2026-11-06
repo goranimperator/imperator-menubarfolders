@@ -16,9 +16,15 @@ let package = Package(
         .executableTarget(
             name: "MenuBarFolders",
             path: "Sources/MenuBarFolders",
-            // swift-tools-version 6.4 turns on Swift 6 language mode, which stops on this
-            // codebase's pre-concurrency code. That migration is a separate job.
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            // The Xcode 27 template defaults: everything is @MainActor unless it says
+            // otherwise, and the compiler rejects data races rather than warning. What
+            // runs off the main actor says so with `nonisolated`, and each one is there
+            // because a detached task calls it.
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+            ]
         )
     ]
 )

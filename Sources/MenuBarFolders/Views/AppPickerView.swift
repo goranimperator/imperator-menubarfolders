@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 struct AppPickerView: View {
     let folder: MenuBarFolder
-    @EnvironmentObject var store: FolderStore
+    @Environment(FolderStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var allApps: [DiscoveredApp] = []

@@ -58,30 +58,30 @@ The settings window is where folders are built:
 
 | Control | What it does |
 |---------|--------------|
-| Scan drives for apps | Look for apps on mounted external drives, with one switch per drive under it |
 | Sidebar `+` | Create a folder |
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
 | Per row | 2 to 6 apps per row in the panel |
 | Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Choose App… | Pick an app anywhere on disk, for anything the scan does not reach |
+| Scan drives for apps | Look for apps on mounted external drives, with one switch per drive under it |
 | Double-click an app | Give it a custom label |
 | Eye | Hide a folder from the menu bar, or bring it back |
-| Drag | Reorder folders in the sidebar, or apps within a folder; both carry a grip at their left |
+| Drag | Reorder folders in the sidebar, or apps within a folder: the row lifts and the rest slide out of its way; both carry a grip at their left |
 
 The panel sizes itself from the app count and the column setting, so a folder with three apps
 does not open a window built for twelve.
 
-**Scan drives for apps** sits at the top of the sidebar and is on by default. The four standard app
-directories are walked in full; a mounted external drive is walked three levels deep, which reaches
-an app on the disk itself, in a folder on it, and one below that. The cap is there because a drive
-is a whole filesystem, and a Time Machine store is skipped outright. Each mounted drive gets its own
-switch under the master one, keyed by the name Finder shows, so turning a drive off survives
-unplugging it. Anything deeper than the cap, on a network share, or on a drive you switched off is
-reached with **Choose App…** in the app picker.
+**Scan drives for apps** sits under Add Folder in the sidebar and is on by default. The four
+standard app directories are walked in full; a mounted external drive is walked three levels deep,
+which reaches an app on the disk itself, in a folder on it, and one below that. The cap is there
+because a drive is a whole filesystem, and a Time Machine store is skipped outright. Each mounted
+drive gets its own switch under the master one, keyed by the name Finder shows, so turning a drive
+off survives unplugging it. Anything deeper than the cap, on a network share, or on a drive you
+switched off is reached with **Choose App…** in the app picker.
 
 A hidden folder keeps its apps and its row in the settings window; it just owns no menu bar icon.
-The eye beside the app count toggles it.
+The eye at the right of the row toggles it.
 
 Deleting the last folder reopens the settings window, and so does hiding the last visible one:
 either way no menu bar icons are left, and with no Dock icon there would be no way back in.
@@ -151,7 +151,7 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/AppDelegate.swift` | Lifecycle, settings window, app menu with Cmd+Q |
 | `Sources/MenuBarFolders/AppColors.swift` | Brand colour |
 | `Sources/MenuBarFolders/Models/` | `MenuBarFolder`, `AppEntry`, both `Codable` |
-| `Sources/MenuBarFolders/Services/FolderStore.swift` | `@MainActor ObservableObject`, JSON persistence |
+| `Sources/MenuBarFolders/Services/FolderStore.swift` | `@Observable` store, JSON persistence |
 | `Sources/MenuBarFolders/Services/MenuBarManager.swift` | One `NSStatusItem` per folder, panel lifecycle |
 | `Sources/MenuBarFolders/Services/MenuBarPanel.swift` | The menu bar panel itself: corner, material, dismissal |
 | `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories and external drives, reads `LSUIElement` |
@@ -159,7 +159,7 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
 | `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
-| `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches at the top of the sidebar |
+| `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches, under Add Folder |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
 
@@ -168,6 +168,19 @@ draws its own menu bar panels as plain rounded rectangles with no arrow and no o
 animation, and `NSPopover` draws neither that shape nor that corner and exposes no radius to set.
 The measurements behind the corner, and why the constant is set higher than the corner it draws,
 are in `MenuBarPanel.swift`.
+
+Both row lists, the sidebar and the app rows, place their rows by hand in a `ScrollView` and
+reorder with a plain `DragGesture` rather than with `List` and `.onMove`. On macOS a List reorders
+through a system drag session: a translucent copy of the row follows the pointer and an insertion
+line marks the target, while the rows themselves stay put until the drop. Here the row lifts and
+the others slide into place around it, and the new order is written once, on release. SwiftUI's own
+`reorderable()` does this natively but needs macOS 27, which would drop everyone from 14 to 26.
+
+Swift 6 language mode with `defaultIsolation(MainActor.self)`: everything is on the main actor
+unless it is marked `nonisolated`, and the compiler rejects data races instead of warning. The app
+scan is the one thing that runs off the main actor, because the picker runs it in a detached task
+while its progress view is up. `FolderStore` is `@Observable`, so a view is redrawn by the
+properties it actually read rather than by every change to the store.
 
 A SwiftPM executable with no dependencies. `LSUIElement` is true, so there is no Dock icon; the
 status items are the entire interface. `MenuBarManager` keys each status item's click back to its

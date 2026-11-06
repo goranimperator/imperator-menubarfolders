@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var store: FolderStore
+    @Environment(FolderStore.self) private var store
     @State private var selectedFolder: MenuBarFolder?
     @State private var showNewFolderSheet = false
     @State private var addFolderHovered = false
@@ -35,12 +35,6 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             // No app name heading here: the window title bar already carries it.
-            // The drive scan sits above the folders instead: it decides what the app
-            // picker can even offer, so it belongs before the list it feeds.
-            ExternalDrivesView()
-
-            Divider()
-
             FolderListView(selectedFolder: $selectedFolder)
                 .frame(maxHeight: .infinity)
 
@@ -64,6 +58,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
+
+            Divider()
+
+            // Under Add Folder, above Open at Login: the drive scan decides what the
+            // app picker can offer, so it reads with the other things that put apps
+            // into a folder rather than with the login item.
+            ExternalDrivesView()
 
             Divider()
 

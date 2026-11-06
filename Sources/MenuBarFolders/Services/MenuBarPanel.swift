@@ -35,8 +35,12 @@ final class MenuBarPanel: NSPanel {
 
     private let host: NSHostingView<AnyView>
     private let container = NSVisualEffectView()
-    private var clickMonitor: Any?
-    private var keyMonitor: Any?
+    // `nonisolated(unsafe)` so `stopMonitoring()` can stay nonisolated and run from
+    // `deinit`, which is nonisolated under the main-actor default. Both tokens are
+    // only ever read or written from `startMonitoring`, `close` and `deinit`, and
+    // AppKit creates, closes and deallocates a window on the main thread.
+    private nonisolated(unsafe) var clickMonitor: Any?
+    private nonisolated(unsafe) var keyMonitor: Any?
     /// The menu bar button this panel hangs off, so a click on it is left to the
     /// button's own action instead of being treated as a click outside.
     private weak var anchor: NSStatusBarButton?
@@ -178,7 +182,7 @@ final class MenuBarPanel: NSPanel {
         }
     }
 
-    private func stopMonitoring() {
+    private nonisolated func stopMonitoring() {
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         clickMonitor = nil

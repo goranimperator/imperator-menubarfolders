@@ -11,6 +11,13 @@ struct ExternalDrivesView: View {
     /// Matches the margin the Add Folder row and the sidebar rows below it use.
     private static let contentMargin: CGFloat = 20
 
+    /// The macOS 27 switch claims 54x24pt in layout and `scaleEffect` shrinks only
+    /// the drawing, so a 0.55 switch paints 29.7pt wide and leaves (54 - 29.7) / 2
+    /// of its claimed box empty on each side. Pulled back by that much, the drawn
+    /// edge lands on the margin instead of 12pt inside it. A fixed frame would set
+    /// the same gap right but clip the hit area, which is why it is padding.
+    private static let switchSideBearing: CGFloat = (54 - 54 * 0.55) / 2
+
     @State private var scanEnabled = VolumeScanSettings.scanExternalDrives
     @State private var excluded = VolumeScanSettings.excludedVolumeNames
     @State private var volumes: [URL] = []
@@ -64,6 +71,7 @@ struct ExternalDrivesView: View {
                 .scaleEffect(0.55)
                 .tint(AppColors.brand)
                 .labelsHidden()
+                .padding(.trailing, -Self.switchSideBearing)
         }
     }
 

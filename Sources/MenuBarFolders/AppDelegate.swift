@@ -68,7 +68,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let contentView = ContentView()
-            .environmentObject(store)
+            .environment(store)
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
