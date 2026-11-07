@@ -30,8 +30,11 @@ final class MenuBarPanel: NSPanel {
     ///
     /// Circular, not `.continuous`. The Wi-Fi panel fits a circle at n=2.2.
     static let cornerRadius: CGFloat = 18.25
-    /// Gap between the menu bar and the panel's top edge.
-    private static let menuBarGap: CGFloat = 2
+    /// Gap between the menu bar and the panel's top edge. Not private: the
+    /// manager needs it to work out how much room a panel has below the item.
+    static let menuBarGap: CGFloat = 2
+    /// Breathing room kept between the panel's bottom edge and the screen's.
+    static let screenMargin: CGFloat = 8
 
     private let host: NSHostingView<AnyView>
     private let container = NSVisualEffectView()
@@ -113,6 +116,23 @@ final class MenuBarPanel: NSPanel {
         contentView = container
     }
 
+    /// Scrolls anywhere on the panel, handed to the content so it can turn a
+    /// page. Overridden on the window rather than watched with a local monitor:
+    /// this is a `.nonactivatingPanel`, so the app is not frontmost while it is
+    /// open and a monitor never sees the event.
+    var onScrollWheel: ((NSEvent) -> Void)?
+
+    override func scrollWheel(with event: NSEvent) {
+        onScrollWheel?(event)
+        super.scrollWheel(with: event)
+    }
+
+    /// How tall a panel hanging off an item at `buttonMinY` can be.
+    static func roomBelowMenuBar(buttonMinY: CGFloat, screen: NSScreen?) -> CGFloat {
+        guard let visible = screen?.visibleFrame else { return .greatestFiniteMagnitude }
+        return buttonMinY - menuBarGap - visible.minY - screenMargin
+    }
+
     var isShown: Bool { isVisible }
 
     /// Show under the menu bar button, centred on it.
@@ -120,11 +140,15 @@ final class MenuBarPanel: NSPanel {
         guard let buttonWindow = button.window else { return }
         anchor = button
 
-        let height = contentHeight?() ?? host.fittingSize.height
-        setContentSize(NSSize(width: frame.width, height: height))
-
         let buttonFrame = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         let screen = buttonWindow.screen ?? NSScreen.main
+
+        // A backstop only. MenuBarManager already reduces what a page holds to
+        // what fits here, so this should never bite; if it ever does, a panel
+        // too tall for the display is worse than one with a row cropped.
+        let height = min(contentHeight?() ?? host.fittingSize.height,
+                         Self.roomBelowMenuBar(buttonMinY: buttonFrame.minY, screen: screen))
+        setContentSize(NSSize(width: frame.width, height: max(height, 1)))
         var x = buttonFrame.midX - frame.width / 2
         // Keep the whole panel on screen when the item sits near an edge, the
         // way the system's own panels slide rather than hang off.

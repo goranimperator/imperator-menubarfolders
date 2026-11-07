@@ -62,15 +62,20 @@ The settings window is where folders are built:
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
 | Per row | 2 to 6 apps per row in the panel |
-| Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
+| Per page | How many apps one page holds before the grid pages sideways |
+| Arrange | Wiggle the icons so they can be moved and removed; holding an app does the same |
+| Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Choose App… | Pick an app anywhere on disk, for anything the scan does not reach |
 | Scan drives for apps | Look for apps on mounted external drives, with one switch per drive under it |
 | Double-click an app | Give it a custom label |
 | Eye | Hide a folder from the menu bar, or bring it back |
-| Drag | Reorder folders in the sidebar, or apps within a folder: the row lifts and the rest slide out of its way; both carry a grip at their left |
+| Drag | Reorder folders in the sidebar, or apps in the grid: the row or icon lifts and the rest slide out of its way |
 
-The panel sizes itself from the app count and the column setting, so a folder with three apps
-does not open a window built for twelve.
+The panel sizes itself from one page rather than from the whole folder, so a folder of forty apps
+opens the same height as a folder of nine and pages sideways for the rest. A folder with fewer apps
+than a page holds is only as tall as it needs. If the page shape asks for more height than the
+display has below the menu bar, the panel holds fewer apps per page and makes more pages, rather
+than growing past the screen and cutting off its own footer.
 
 **Scan drives for apps** sits under Add Folder in the sidebar and is on by default. The four
 standard app directories are walked in full; a mounted external drive is walked three levels deep,
@@ -155,9 +160,11 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Services/MenuBarManager.swift` | One `NSStatusItem` per folder, panel lifecycle |
 | `Sources/MenuBarFolders/Services/MenuBarPanel.swift` | The menu bar panel itself: corner, material, dismissal |
 | `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories and external drives, reads `LSUIElement` |
+| `Sources/MenuBarFolders/Services/GridPaging.swift` | Page arithmetic and the scroll plumbing, with no views in it |
 | `Sources/MenuBarFolders/Services/LucideIcons.swift` | 138 icons as SVG element data, cached as `NSImage` |
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
+| `Sources/MenuBarFolders/Views/AppGridCarousel.swift` | The paged app grid: arranging, swiping, remove badges |
 | `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
 | `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches, under Add Folder |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
@@ -169,12 +176,23 @@ animation, and `NSPopover` draws neither that shape nor that corner and exposes 
 The measurements behind the corner, and why the constant is set higher than the corner it draws,
 are in `MenuBarPanel.swift`.
 
-Both row lists, the sidebar and the app rows, place their rows by hand in a `ScrollView` and
-reorder with a plain `DragGesture` rather than with `List` and `.onMove`. On macOS a List reorders
-through a system drag session: a translucent copy of the row follows the pointer and an insertion
-line marks the target, while the rows themselves stay put until the drop. Here the row lifts and
-the others slide into place around it, and the new order is written once, on release. SwiftUI's own
-`reorderable()` does this natively but needs macOS 27, which would drop everyone from 14 to 26.
+The sidebar places its rows by hand in a `ScrollView` and reorders with a plain `DragGesture`
+rather than with `List` and `.onMove`. On macOS a List reorders through a system drag session: a
+translucent copy of the row follows the pointer and an insertion line marks the target, while the
+rows themselves stay put until the drop. Here the row lifts and the others slide into place around
+it, and the new order is written once, on release. SwiftUI's own `reorderable()` does this natively
+but needs macOS 27, which would drop everyone from 14 to 26.
+
+The app grid works the same way, arranged as an iPhone home screen is. Holding an app, or pressing
+Arrange, starts arranging: the icons wiggle, remove badges appear, the held icon lifts out from
+under the pointer and the others slide out of its way, and holding it at a side edge turns the page.
+The grid and the menu bar panel page sideways three ways: a two-finger swipe on a trackpad, a
+mouse wheel, or clicking and dragging the grid to the side. The sidebar does not page; it scrolls.
+A trackpad reports a whole gesture, so a page turn is a horizontal swipe and vertical scrolling is
+left alone; a plain wheel reports none of that and gets its own rule, two detents on whichever axis
+it has. The settings window reads those
+scrolls through a local monitor; the menu bar panel cannot, because it never makes the app
+frontmost, so it overrides `scrollWheel(with:)` on the window instead.
 
 Swift 6 language mode with `defaultIsolation(MainActor.self)`: everything is on the main actor
 unless it is marked `nonisolated`, and the compiler rejects data races instead of warning. The app

@@ -96,13 +96,30 @@ class MenuBarManager: NSObject {
         guard let folder = store.folders.first(where: { $0.id == folderID }) else { return }
 
         let cols = folder.columnsPerRow
-        let gridHeight = FolderPopoverView.calculateGridHeight(appCount: folder.apps.count, columns: cols)
-        let totalHeight = FolderPopoverView.calculateTotalHeight(appCount: folder.apps.count, columns: cols)
+        // A page is rigid and nothing scrolls inside it, so a tall page shape on
+        // a short display would make the panel taller than the room under the
+        // menu bar and the clamp in `show` would then crop the header and the
+        // footer, taking Quit and Settings with them. Reduce what a page holds
+        // instead: fewer apps per page, more pages, everything still reachable.
+        let room = MenuBarPanel.roomBelowMenuBar(
+            buttonMinY: button.window.map { $0.convertToScreen(button.convert(button.bounds, to: nil)).minY } ?? 0,
+            screen: button.window?.screen ?? NSScreen.main
+        )
+        let fitting = FolderPopoverView.slotsThatFit(
+            availableHeight: FolderPopoverView.availableGridHeight(totalAvailable: room),
+            columns: cols
+        )
+        let perPage = max(1, min(folder.itemsPerPage, fitting))
+        let gridHeight = FolderPopoverView.calculateGridHeight(appCount: folder.apps.count, columns: cols, itemsPerPage: perPage)
+        let totalHeight = FolderPopoverView.calculateTotalHeight(appCount: folder.apps.count, columns: cols, itemsPerPage: perPage)
         let totalWidth = FolderPopoverView.calculateWidth(columns: cols)
+        let scrollRelay = PanelScrollRelay()
 
         let popoverView = FolderPopoverView(
             folder: folder,
+            itemsPerPage: perPage,
             gridHeight: gridHeight,
+            scrollEvents: scrollRelay,
             onOpenApp: { [weak self] app in
                 self?.closePopover(for: folderID)
                 NSWorkspace.shared.open(app.url)
@@ -128,6 +145,7 @@ class MenuBarManager: NSObject {
         // own monitor leaves the status item's click to the button's action, so
         // the toggle no longer races a panel that closed itself first.
         let panel = MenuBarPanel(content: popoverView, width: totalWidth)
+        panel.onScrollWheel = { event in scrollRelay.handle(event) }
         // The grid's height is calculated, not measured: the rows are laid out
         // by hand and a fitting size a point short opens the panel clipped.
         panel.contentHeight = { totalHeight }

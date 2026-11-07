@@ -93,6 +93,12 @@ final class FolderStore {
         save()
     }
 
+    func updateItemsPerPage(for folder: MenuBarFolder, itemsPerPage: Int) {
+        guard let idx = folders.firstIndex(where: { $0.id == folder.id }) else { return }
+        folders[idx].itemsPerPage = max(2, min(itemsPerPage, 30))
+        save()
+    }
+
     func toggleHidden(for folder: MenuBarFolder) {
         guard let idx = folders.firstIndex(where: { $0.id == folder.id }) else { return }
         folders[idx].isHidden.toggle()

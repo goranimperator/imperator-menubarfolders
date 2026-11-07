@@ -63,20 +63,47 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
   backed-up Mac. `VolumeScanSettings` lives in the same file and keys exclusions by volume name, not
   mount path, so the choice survives unplugging the disk. Anything the scan cannot reach is added
   with the `NSOpenPanel` behind **Choose App…** in the picker
-- **Reordering**: both row lists, the sidebar folders and the detail pane's app rows, position
-  their rows by hand inside a `ScrollView` and reorder with a plain `DragGesture`, ported from
-  imperator-dock-folder 1.0.8. A `List` with `.onMove` runs a system drag session on macOS: a
-  translucent snapshot follows the pointer and an insertion line marks the target while the rows
-  stay put until the drop. Here the row lifts and the others slide. This departs from brand book
-  7.18 on purpose. The shape is the same in both files: an `order` array of ids that the rows read
-  their slot from, a `lifted` struct holding the pointer position and the grab offset, a `rowPitch`
-  measured off a rendered row with `onGeometryChange`, `spring(response: 0.32, dampingFraction:
-  0.8)` as the settle, `.levelChange` haptics on lift and `.alignment` on each slot change, and one
-  write on drop through `reorderFolders(to:)` / `reorderApps(in:to:)`. `minimumDistance: 3` on a
-  `simultaneousGesture` keeps taps, double-click rename and the row buttons working; a row whose
-  rename field is open passes the drag to the field with `including: .subviews`. There is no
-  auto-scroll past the visible rows. `reorderable()` / `reorderContainer(for:)` do this natively but
-  need macOS 27, so they stay out while the minimum is 14
+- **Reordering**: the sidebar folder rows position themselves by hand inside a `ScrollView` and
+  reorder with a plain `DragGesture`, ported from imperator-dock-folder 1.0.8. A `List` with
+  `.onMove` runs a system drag session on macOS: a translucent snapshot follows the pointer and an
+  insertion line marks the target while the rows stay put until the drop. Here the row lifts and the
+  others slide. This departs from brand book 7.18 on purpose. An `order` array of ids gives each row
+  its slot, a `lifted` struct holds the pointer position and the grab offset, `rowPitch` is measured
+  off a rendered row with `onGeometryChange`, `spring(response: 0.32, dampingFraction: 0.8)` is the
+  settle, `.levelChange` haptics fire on lift and `.alignment` on each slot change, and the drop
+  writes once through `reorderFolders(to:)`. `minimumDistance: 3` on a `simultaneousGesture` keeps
+  taps and the row buttons working. No auto-scroll past the visible rows
+- **App grid**: the detail pane is `AppGridCarousel`, a paged grid ported from the same release.
+  Hold an app for 380ms, or press **Arrange**, and the grid starts arranging: the icons wiggle,
+  remove badges appear, the held icon lifts and the others slide out of its way, and resting it
+  within 36pt of a side edge for 550ms turns the page and keeps turning. **Done**, Escape or a click
+  on empty grid space ends it. The wiggle is a `TimelineView`, never `repeatForever`: a repeating
+  animation leaks into every change in the same transaction and sets the slide into slot wobbling.
+  `GridPaging.swift` holds the parts with no view in them, `GridMetrics`, `pageCount` and
+  `PageSwipeAccumulator`, so the arithmetic can be compiled and exercised on its own
+- **Sideways swipe**: three ways in, because a panel has to answer a trackpad, a mouse wheel and a
+  click-drag. A trackpad reports a gesture, so a page turn is a horizontal swipe, one per gesture,
+  with the momentum tail ignored and vertical scrolling left alone. A plain wheel reports no phase,
+  no momentum and usually no horizontal axis at all, so held to the trackpad rules it could never
+  turn a page and the accumulator would never reset; `PageSwipeAccumulator` splits on
+  `hasPreciseScrollingDeltas` plus the phase fields and gives the wheel its own path: whichever axis
+  moves, two detents, reset after a 0.25s pause. Click-drag is a `DragGesture(minimumDistance: 0)`
+  on the cells and on the grid behind them, which turns into a swipe past 6pt of travel. The cells
+  are deliberately not `Button`s: a button fires on mouse-up wherever the pointer has been, so a
+  swipe begun on an icon launched that app when it was released
+- **Where the scroll comes from**: two routes, because event delivery differs. The settings window
+  uses `ScrollWheelOverlay`, an `NSViewRepresentable` whose view installs a local `.scrollWheel`
+  monitor and only asks whether the pointer is over its own bounds; it returns nil from `hitTest` so
+  it never takes a click. Overriding `scrollWheel(with:)` behind the grid instead only ever saw
+  scrolls in the gaps between icons. The menu bar panel cannot use a monitor at all: it is a
+  `.nonactivatingPanel`, so the app is not frontmost while it is open. It overrides
+  `scrollWheel(with:)` on the window and feeds `PanelScrollRelay`
+- **Per page**: `MenuBarFolder.itemsPerPage`, default 9, `decodeIfPresent` so folders.json written
+  before 1.1.4 still reads. The panel's height comes from `min(appCount, itemsPerPage)` rows, not
+  from the app count, so a folder of forty apps opens the same size as one of nine. There is no
+  grid height cap and no scroll view inside a page: a page is exactly its slots, so a cap would hide
+  rows with no way to reach them, and a scroll view would swallow the vertical half of every
+  gesture. `MenuBarPanel.show` clamps the finished panel to what is below the menu bar instead
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Panel height calculated mathematically per folder (columns × rows) and handed to the panel through
   `contentHeight`, because a SwiftUI fitting size a point short opens the panel clipped
@@ -107,8 +134,8 @@ Sources/MenuBarFolders/
   AppDelegate.swift       # Lifecycle, settings window, app menu with Cmd+Q
   AppColors.swift         # Centralized brand color (AppColors.brand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
-  Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, LucideIcons, SVGRenderer
-  Views/                  # ContentView, FolderList/Detail, AppPicker, IconPicker, Popover, Settings, AboutPanel
+  Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, GridPaging, LucideIcons, SVGRenderer
+  Views/                  # ContentView, FolderList/Detail, AppGridCarousel, AppPicker, IconPicker, Popover, Settings, AboutPanel
 ```
 
 ## Brand Book
@@ -134,9 +161,10 @@ Key rules:
   `VStack(alignment: .leading, spacing: 2)`. The trailing `HStack` takes `spacing: isHovered ?
   itemGap : 0`, so at rest the eye is the last thing in the row and lands on the margin instead of
   holding open the gap where the hidden trash would be
-- **Detail pane inset**: one constant, `FolderDetailView.paneInset`, for the header, the app rows and
-  their separators, so everything lines up down both edges. The app list is `.listStyle(.plain)`:
-  `.inset` adds a margin of its own and pushed the rows ~17pt further in than the header
+- **Detail pane**: two rows of chrome over the grid, the shape imperator-dock-folder uses. The
+  header carries the folder icon button, the name, then Arrange (or Done) and Add Apps; the bar under it
+  carries Per row, Per page and the dot-matrix page preview. One constant,
+  `FolderDetailView.paneInset`, insets both, so everything lines up down each edge
 - **External drives**: `ExternalDrivesView` sits under the Add Folder row and above Open at Login,
   with the other controls that put apps into a folder. The master switch is **Scan drives for
   apps**, pulled right by `switchSideBearing` because the macOS 27 switch claims 54pt in layout and
