@@ -5,20 +5,25 @@ struct LaunchAtLoginToggle: View {
     @State private var isEnabled = SMAppService.mainApp.status == .enabled
     @State private var isHovered = false
 
+    /// Where the switch sits. In the sidebar the label stays left and the switch
+    /// goes to the right edge, the same as every other row in that column; in the
+    /// panel footer the two sit together on the left beside Settings, About and
+    /// Quit, which is where the brand book puts them.
+    enum Layout { case together, spread }
+    var layout: Layout = .together
+
     var body: some View {
         HStack(spacing: 6) {
             Text("Open at Login")
                 .font(.caption)
-            // The stock switch, styled only by the brand tint. No frame: the macOS 27
-            // switch measures 54x24pt and scaleEffect does not change the size it claims
-            // in layout, so a 36x20 frame only clipped the hit area while reading as a
-            // size guarantee it never gave. No cursor modifier either, so the pointer
-            // stays the system arrow the way every other switch on the system behaves.
-            Toggle("Open at Login", isOn: $isEnabled)
-                .toggleStyle(.switch)
-                .scaleEffect(0.55)
-                .tint(AppColors.brand)
-                .labelsHidden()
+            if layout == .spread { Spacer(minLength: 4) }
+            // The shared switch, so a style change is made once. It carries no fixed
+            // frame and no cursor modifier: the macOS 27 switch claims 54x24pt in
+            // layout and scaleEffect does not change the size it claims, so a frame
+            // only clipped the hit area, and the pointer stays the system arrow.
+            // Only the spread layout bleeds the drawn edge onto the margin; the
+            // footer keeps the switch where it has always been.
+            BrandSwitch(title: "Open at Login", isOn: $isEnabled, bleed: layout == .spread)
                 .onChange(of: isEnabled) { _, newValue in
                     do {
                         if newValue { try SMAppService.mainApp.register() }
@@ -36,6 +41,6 @@ struct LaunchAtLoginToggle: View {
 
 struct SettingsView: View {
     var body: some View {
-        LaunchAtLoginToggle()
+        LaunchAtLoginToggle(layout: .spread)
     }
 }

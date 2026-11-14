@@ -104,6 +104,32 @@ the zip attached. Needs `gh` and a clean working tree. `CFBundleVersion` comes f
   grid height cap and no scroll view inside a page: a page is exactly its slots, so a cap would hide
   rows with no way to reach them, and a scroll view would swallow the vertical half of every
   gesture. `MenuBarPanel.show` clamps the finished panel to what is below the menu bar instead
+- **Update checker**: `UpdateChecker`, an `@Observable` singleton started from
+  `applicationDidFinishLaunching`, ported from imperator-dock-folder 1.0.10. It is the app's only
+  network traffic and it is deliberate, so do not remove it as network code nobody asked for and do
+  not widen what it sends. Once a day it makes one `GET` to
+  `https://api.github.com/repos/goranimperator/imperator-menubarfolders/releases/latest` and sends
+  nothing but `Imperator-MenuBarFolders/<version>` as the User-Agent, which GitHub requires. The slug
+  is the GitHub name, not the checkout directory (`imperator-menubarfolders` against
+  `imperator-menu-bar-folders`). Rules it keeps: on by default with a switch, and **Check Now** runs
+  even with the switch off; the notification permission is asked only when there is an update to
+  report, never at launch; one notification per version, stored as `notifiedUpdateVersion`; a link
+  opens only for `https://github.com`, because it comes from a network response; versions compare
+  numerically per component, never as strings; only a successful check counts toward the day, so an
+  hourly tick retries a failure and catches a Mac that slept through the mark. It never installs:
+  the app is not notarized, so an update meets Gatekeeper like the first install and the README says
+  to run `xattr` again. Sparkle was decided against on 2026-11-07: it breaks the no-third-party
+  rule and needs an EdDSA key per app. Overwriting a release makes `releases/latest` briefly answer
+  404 or the previous tag, which the checker treats as a failed check. A found update lives in
+  `available`, apart from `status`: Check Now sets `.checking` and a failed re-check sets `.failed`,
+  and when the update lived inside `status` either one threw a known update away. Only a successful
+  check changes it, and switching the check off clears it. The hourly tick exists only while the
+  switch is on (`refreshSchedule()`). A version is recorded as notified once the user has answered
+  the permission question, granted or not, so a denial is not asked again every day. A tag that does
+  not parse, like `1.2.x`, is never offered, and a `-` or `+` label is not a component. Outside a
+  `.app` bundle `UNUserNotificationCenter.current()` raises, so `canNotify` guards every use of it:
+  `swift run` still launches and still checks, it just cannot post. To see a notification, test the
+  built bundle
 - MenuBarManager: one NSStatusItem per folder, objc_setAssociatedObject for click routing
 - Panel height calculated mathematically per folder (columns × rows) and handed to the panel through
   `contentHeight`, because a SwiftUI fitting size a point short opens the panel clipped
@@ -134,8 +160,8 @@ Sources/MenuBarFolders/
   AppDelegate.swift       # Lifecycle, settings window, app menu with Cmd+Q
   AppColors.swift         # Centralized brand color (AppColors.brand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
-  Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, GridPaging, LucideIcons, SVGRenderer
-  Views/                  # ContentView, FolderList/Detail, AppGridCarousel, AppPicker, IconPicker, Popover, Settings, AboutPanel
+  Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, GridPaging, UpdateChecker, LucideIcons, SVGRenderer
+  Views/                  # ContentView, FolderList/Detail, AppGridCarousel, AppPicker, IconPicker, Popover, Settings, BrandSwitch, UpdateCheckerView, AboutPanel
 ```
 
 ## Brand Book
@@ -165,21 +191,29 @@ Key rules:
   header carries the folder icon button, the name, then Arrange (or Done) and Add Apps; the bar under it
   carries Per row, Per page and the dot-matrix page preview. One constant,
   `FolderDetailView.paneInset`, insets both, so everything lines up down each edge
-- **External drives**: `ExternalDrivesView` sits under the Add Folder row and above Open at Login,
-  with the other controls that put apps into a folder. The master switch is **Scan drives for
-  apps**, pulled right by `switchSideBearing` because the macOS 27 switch claims 54pt in layout and
-  `scaleEffect(0.55)` paints 29.7 of them, so the drawn edge would otherwise sit 12pt inside the
-  margin; one row per mounted drive follows,
-  indented 12pt, and the list refreshes on `NSWorkspace.didMountNotification` and
-  `didUnmountNotification`. The per-drive switch reads as "scan this drive", so it is the inverse of
-  the stored exclusion. Every switch repeats LaunchAtLoginToggle's shape: `.switch`,
-  `scaleEffect(0.55)`, `.tint(AppColors.brand)`, no frame and no cursor modifier
+- **External drives**: `ExternalDrivesView` sits under the Add Folder row and above Check for
+  updates, with the other controls that put apps into a folder. The master switch is **Scan drives
+  for apps**; one row per mounted drive follows, indented 12pt, and the list refreshes on
+  `NSWorkspace.didMountNotification` and `didUnmountNotification`. The per-drive switch reads as
+  "scan this drive", so it is the inverse of the stored exclusion. Every switch in the sidebar is a
+  `BrandSwitch`: see Sidebar switches below for the side bearing it carries
 - **Hidden folders**: `MenuBarFolder.isHidden`. `syncStatusItems` filters on it, so a hidden folder
   keeps its apps and its settings row but owns no status item. Hiding the last visible folder
   reopens the settings window, the same guard deleting the last folder uses
+- **Sidebar switches**: `BrandSwitch` is the one definition, used by Scan drives, Check for updates
+  and Open at Login, in the sidebar and in the panel footer. `bleed` (default on) is what pulls the
+  drawn edge onto the margin; the footer's Open at Login turns it off because Settings, About and
+  Quit sit beside it. The sidebar order is the folder list, Add Folder, Scan drives
+  for apps, Check for updates, Open at Login, so the footer is the last thing in it. The side
+  bearing is measured once there: the macOS 27 switch claims 54pt in layout and `scaleEffect(0.55)`
+  paints 29.7 of them, so the drawn edge is pulled back onto the margin with negative trailing
+  padding rather than a frame, which would clip the hit area. The update buttons are plain text
+  rather than stock `Button`s, because the forced accent would make a stock button's label red
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
-  The switch carries no fixed frame and no cursor modifier: on macOS 27 it claims 54x24pt in layout
-  and `scaleEffect` shrinks only the drawing, so a frame clips the hit area without setting the size
+  Two layouts: `.spread` in the sidebar puts the label left and the switch on the right edge like
+  every other row there, `.together` in the panel footer keeps them side by side on the left beside
+  Settings, About and Quit. The switch carries no fixed frame and no cursor modifier: on macOS 27 it
+  claims 54x24pt in layout and `scaleEffect` shrinks only the drawing
 - **Panel header**: the folder's own menu bar glyph at 16pt via `folderStatusIcon`, rendered as a
   template so it takes `.primary`, then the folder name in `.headline`, `spacing: 8`, H16 V12. Same
   shape as imperator-widget-clock's header. Do not use `folderPreviewIcon` here: it bakes in white

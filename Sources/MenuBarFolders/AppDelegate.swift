@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager = MenuBarManager(store: store, appDelegate: self)
         menuBarManager.syncStatusItems()
         setupMainMenu()
+        UpdateChecker.shared.start()
 
         if store.folders.isEmpty {
             showSettingsWindow()

@@ -68,12 +68,15 @@ struct ContentView: View {
 
             Divider()
 
-            HStack {
-                SettingsView()
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            // Above Open at Login, so the footer of the sidebar stays the last
+            // thing in it.
+            UpdateCheckerView()
+
+            Divider()
+
+            SettingsView()
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
         }
         // No background of its own: imperator-dock-folder lets the window's own
         // dark ground through. controlBackgroundColor lifted the sidebar to a

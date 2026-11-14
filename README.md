@@ -36,7 +36,12 @@ settings window opens on its own.
 
 ## Permissions
 
-None. The app requests no Accessibility, Input Monitoring, or Automation grants, and declares no
+| Permission | What for |
+|------------|----------|
+| Network | One request a day: the update check, a `GET` to `api.github.com/repos/goranimperator/imperator-menubarfolders/releases/latest`. It sends nothing but the app's name and version as the User-Agent GitHub requires. No telemetry, no analytics, nothing about you. Turn it off with **Check for updates** in the sidebar. |
+| Notifications | One notification per new version, to say an update is out. Asked for only when there is an update to report, never at first launch. Deny it and the row in the sidebar still shows. |
+
+The app requests no Accessibility, Input Monitoring, or Automation grants, and declares no
 `NSUsage` keys. It reads `/Applications`, `/System/Applications`, `~/Applications` and
 `/Applications/Xcode.app/Contents/Applications` to list what is installed, reads mounted external
 drives when **Scan drives for apps** is on, and launches apps through `NSWorkspace`. **Choose App…**
@@ -67,6 +72,7 @@ The settings window is where folders are built:
 | Add Apps | Pick from everything installed; apps marked **Menu bar app** declare `LSUIElement` |
 | Choose App… | Pick an app anywhere on disk, for anything the scan does not reach |
 | Scan drives for apps | Look for apps on mounted external drives, with one switch per drive under it |
+| Check for updates | Ask GitHub once a day for a newer release; **Check Now** asks straight away |
 | Double-click an app | Give it a custom label |
 | Eye | Hide a folder from the menu bar, or bring it back |
 | Drag | Reorder folders in the sidebar, or apps in the grid: the row or icon lifts and the rest slide out of its way |
@@ -84,6 +90,25 @@ because a drive is a whole filesystem, and a Time Machine store is skipped outri
 drive gets its own switch under the master one, keyed by the name Finder shows, so turning a drive
 off survives unplugging it. Anything deeper than the cap, on a network share, or on a drive you
 switched off is reached with **Choose App…** in the app picker.
+
+**Check for updates** sits above Open at Login in the sidebar and is on by default. Once a day
+the app asks GitHub for the latest published release and compares its tag with its own version,
+numerically per component, so 1.0.10 counts as newer than 1.0.9. A newer one shows as a row in the
+sidebar and as one notification per version; **Download** and the notification both open the release
+page, and nothing else. **Check Now** runs the check even with the switch off, because it is an
+explicit request. Only a successful check counts toward the day, so a failure is retried within the
+hour, and a failed re-check does not take away an update the app has already found. Switching the
+check off stops the daily check and clears that row.
+
+Updating is still by hand. The app is not notarized, so a downloaded update meets Gatekeeper exactly
+like the first install: choose **Done**, then clear the quarantine flag again.
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Imperator MenuBarFolders.app"
+```
+
+Type that rather than pasting it from a chat window: a pasted line can come out with curly quotes
+or a non-breaking space, and `xattr` then answers "No such file".
 
 A hidden folder keeps its apps and its row in the settings window; it just owns no menu bar icon.
 The eye at the right of the row toggles it.
@@ -161,12 +186,15 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Services/MenuBarPanel.swift` | The menu bar panel itself: corner, material, dismissal |
 | `Sources/MenuBarFolders/Services/AppDiscovery.swift` | Scans the app directories and external drives, reads `LSUIElement` |
 | `Sources/MenuBarFolders/Services/GridPaging.swift` | Page arithmetic and the scroll plumbing, with no views in it |
+| `Sources/MenuBarFolders/Services/UpdateChecker.swift` | The daily release check and the one notification per version |
 | `Sources/MenuBarFolders/Services/LucideIcons.swift` | 138 icons as SVG element data, cached as `NSImage` |
 | `Sources/MenuBarFolders/Services/SVGRenderer.swift` | SVG elements and path data to `NSBezierPath` |
 | `Sources/MenuBarFolders/Views/AboutPanel.swift` | Brand book §10 About panel, `NSPanel` 300x260pt |
 | `Sources/MenuBarFolders/Views/AppGridCarousel.swift` | The paged app grid: arranging, swiping, remove badges |
+| `Sources/MenuBarFolders/Views/BrandSwitch.swift` | The sidebar switch: stock, brand tint, drawn edge on the margin |
 | `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
 | `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches, under Add Folder |
+| `Sources/MenuBarFolders/Views/UpdateCheckerView.swift` | The update switch, status and Check Now, above Open at Login |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
 
