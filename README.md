@@ -63,7 +63,7 @@ The settings window is where folders are built:
 
 | Control | What it does |
 |---------|--------------|
-| Sidebar `+` | Create a folder |
+| Add Folder | Create a folder |
 | Folder icon | Open the icon picker: 138 Lucide icons, searchable, or paste your own SVG |
 | Name field | Rename the folder; the name is also the menu bar icon's tooltip |
 | Per row | 2 to 6 apps per row in the panel |
@@ -83,7 +83,11 @@ than a page holds is only as tall as it needs. If the page shape asks for more h
 display has below the menu bar, the panel holds fewer apps per page and makes more pages, rather
 than growing past the screen and cutting off its own footer.
 
-**Scan drives for apps** sits under Add Folder in the sidebar and is on by default. The four
+The sidebar ends in a **Settings** section that folds open and shut: Scan drives for apps, Check
+for updates and Open at Login. It starts shut every time and opens without animation. While an
+update is waiting it shows a red dot beside its name, so shut does not hide it.
+
+**Scan drives for apps** is in the Settings section of the sidebar and is on by default. The four
 standard app directories are walked in full; a mounted external drive is walked three levels deep,
 which reaches an app on the disk itself, in a folder on it, and one below that. The cap is there
 because a drive is a whole filesystem, and a Time Machine store is skipped outright. Each mounted
@@ -91,14 +95,14 @@ drive gets its own switch under the master one, keyed by the name Finder shows, 
 off survives unplugging it. Anything deeper than the cap, on a network share, or on a drive you
 switched off is reached with **Choose App…** in the app picker.
 
-**Check for updates** sits above Open at Login in the sidebar and is on by default. Once a day
+**Check for updates** is in the same Settings section and is on by default. Once a day
 the app asks GitHub for the latest published release and compares its tag with its own version,
-numerically per component, so 1.0.10 counts as newer than 1.0.9. A newer one shows as a row in the
-sidebar and as one notification per version; **Download** and the notification both open the release
-page, and nothing else. **Check Now** runs the check even with the switch off, because it is an
-explicit request. Only a successful check counts toward the day, so a failure is retried within the
-hour, and a failed re-check does not take away an update the app has already found. Switching the
-check off stops the daily check and clears that row.
+numerically per component, so 1.0.10 counts as newer than 1.0.9. A newer one shows in the Settings
+section, with a **Download** button, and as one notification per version; **Download** and the
+notification both open the release page, and nothing else. **Check Now** runs the check even with
+the switch off, because it is an explicit request. Only a successful check counts toward the day, so
+a failure is retried within the hour, and a failed re-check does not take away an update the app has
+already found. Switching the check off stops the daily check and clears the update.
 
 Updating is still by hand. The app is not notarized, so a downloaded update meets Gatekeeper exactly
 like the first install: choose **Done**, then clear the quarantine flag again.
@@ -193,8 +197,10 @@ name. `CFBundleVersion` is set from `git rev-list --count HEAD` and is never edi
 | `Sources/MenuBarFolders/Views/AppGridCarousel.swift` | The paged app grid: arranging, swiping, remove badges |
 | `Sources/MenuBarFolders/Views/BrandSwitch.swift` | The sidebar switch: stock, brand tint, drawn edge on the margin |
 | `Sources/MenuBarFolders/Views/DragGrip.swift` | The two-column dot grip on reorderable rows |
-| `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches, under Add Folder |
-| `Sources/MenuBarFolders/Views/UpdateCheckerView.swift` | The update switch, status and Check Now, above Open at Login |
+| `Sources/MenuBarFolders/Views/ExternalDrivesView.swift` | The drive scan switches, in the Settings section |
+| `Sources/MenuBarFolders/Views/SidebarActionLabel.swift` | The icon and title of the sidebar's action rows, one width and one gap for all |
+| `Sources/MenuBarFolders/Views/SidebarSettingsView.swift` | The Settings section: one folding header over the drive scan, the update check and Open at Login |
+| `Sources/MenuBarFolders/Views/UpdateCheckerView.swift` | The update switch, status and Check Now |
 | `Sources/MenuBarFolders/Views/` | SwiftUI: settings window, pickers, panel content |
 | `Resources/` | `Info.plist` and app icon |
 

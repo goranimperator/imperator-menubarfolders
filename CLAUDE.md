@@ -161,7 +161,7 @@ Sources/MenuBarFolders/
   AppColors.swift         # Centralized brand color (AppColors.brand)
   Models/                 # MenuBarFolder, AppEntry (Codable)
   Services/               # FolderStore, MenuBarManager, MenuBarPanel, AppDiscovery, GridPaging, UpdateChecker, LucideIcons, SVGRenderer
-  Views/                  # ContentView, FolderList/Detail, AppGridCarousel, AppPicker, IconPicker, Popover, Settings, BrandSwitch, UpdateCheckerView, AboutPanel
+  Views/                  # ContentView, FolderList/Detail, AppGridCarousel, AppPicker, IconPicker, Popover, Settings, SidebarSettings, SidebarActionLabel, BrandSwitch, UpdateCheckerView, AboutPanel
 ```
 
 ## Brand Book
@@ -191,24 +191,45 @@ Key rules:
   header carries the folder icon button, the name, then Arrange (or Done) and Add Apps; the bar under it
   carries Per row, Per page and the dot-matrix page preview. One constant,
   `FolderDetailView.paneInset`, insets both, so everything lines up down each edge
-- **External drives**: `ExternalDrivesView` sits under the Add Folder row and above Check for
-  updates, with the other controls that put apps into a folder. The master switch is **Scan drives
-  for apps**; one row per mounted drive follows, indented 12pt, and the list refreshes on
-  `NSWorkspace.didMountNotification` and `didUnmountNotification`. The per-drive switch reads as
-  "scan this drive", so it is the inverse of the stored exclusion. Every switch in the sidebar is a
-  `BrandSwitch`: see Sidebar switches below for the side bearing it carries
+- **External drives**: `ExternalDrivesView` is the first row inside the Settings accordion, with
+  the other settings. The master switch is **Scan drives for apps**; one row per mounted drive
+  follows, indented 12pt, and the list refreshes on `NSWorkspace.didMountNotification` and
+  `didUnmountNotification`. The per-drive switch reads as "scan this drive", so it is the inverse of
+  the stored exclusion. Every switch in the sidebar is a `BrandSwitch`: see Sidebar switches below
+  for the side bearing it carries
 - **Hidden folders**: `MenuBarFolder.isHidden`. `syncStatusItems` filters on it, so a hidden folder
   keeps its apps and its settings row but owns no status item. Hiding the last visible folder
   reopens the settings window, the same guard deleting the last folder uses
+- **Settings accordion**: `SidebarSettingsView` folds Scan drives for apps, Check for updates and
+  Open at Login under one `gear` + "Settings" header at the bottom of the sidebar, under Add
+  Folder. They are set once and left alone, and together they took more of the sidebar than the
+  folder list above them. The header copies the Add Folder row: 13pt label, 20pt margin, hover from
+  0.7 to 1.0, and both are built from `SidebarActionLabel`. SF Symbols are not one width, `gear` is
+  wider than `plus.circle.fill` at the same point size, so with natural-size glyphs the two titles
+  started 2pt apart. The label scales every icon into one 15pt square and puts one 6pt gap after
+  it, so the titles share a left edge by construction; add any new sidebar action row with it
+  - It always starts closed. The open state is plain `@State`, not saved, because a saved one put
+    it back open on every launch after it was folded open once
+  - It opens and closes with no animation, in a transaction with `disablesAnimations`. Only the
+    header's hover fade is animated, the same as Add Folder
+  - A closed accordion would hide the one thing that has to be seen, so the header carries a brand
+    dot while `UpdateChecker.available` is set
+  - The spacing is imperator-dock-folder's, number for number, and the container owns it, not the
+    rows: 10 above the header, 16 below it while open (10 shut), 12 between options, 12 under the
+    last, 20 at the edges, 3 from an option's title to the line under it. A row that pads itself
+    cannot be told apart from the gap between rows. The switch claims a 24pt box in layout whatever
+    it draws, which made every gap look twice as big, so `BrandSwitch` with `bleed` also takes its
+    layout height down to the drawn 13.2pt
+  - No dividers between the rows: with one above and below each, every setting sat in its own
+    bordered band. Open at Login is last, so the footer of the sidebar is still the last thing in it
 - **Sidebar switches**: `BrandSwitch` is the one definition, used by Scan drives, Check for updates
   and Open at Login, in the sidebar and in the panel footer. `bleed` (default on) is what pulls the
   drawn edge onto the margin; the footer's Open at Login turns it off because Settings, About and
-  Quit sit beside it. The sidebar order is the folder list, Add Folder, Scan drives
-  for apps, Check for updates, Open at Login, so the footer is the last thing in it. The side
-  bearing is measured once there: the macOS 27 switch claims 54pt in layout and `scaleEffect(0.55)`
-  paints 29.7 of them, so the drawn edge is pulled back onto the margin with negative trailing
-  padding rather than a frame, which would clip the hit area. The update buttons are plain text
-  rather than stock `Button`s, because the forced accent would make a stock button's label red
+  Quit sit beside it. The side bearing is measured once there: the macOS 27 switch claims 54pt in
+  layout and `scaleEffect(0.55)` paints 29.7 of them, so the drawn edge is pulled back onto the
+  margin with negative trailing padding rather than a frame, which would clip the hit area. The
+  update buttons are plain text rather than stock `Button`s, because the forced accent would make a
+  stock button's label red
 - **LaunchAtLoginToggle**: brand book §7.2 pattern with hover opacity, defined in SettingsView.swift.
   Two layouts: `.spread` in the sidebar puts the label left and the switch on the right edge like
   every other row there, `.together` in the panel footer keeps them side by side on the left beside

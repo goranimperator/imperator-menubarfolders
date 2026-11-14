@@ -42,13 +42,8 @@ struct ContentView: View {
 
             HStack {
                 Button(action: { showNewFolderSheet = true }) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Folder")
-                    }
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .opacity(addFolderHovered ? 1.0 : 0.7)
+                    SidebarActionLabel(systemImage: "plus.circle.fill", title: "Add Folder")
+                        .opacity(addFolderHovered ? 1.0 : 0.7)
                 }
                 .buttonStyle(.borderless)
                 .onHover { h in
@@ -61,22 +56,9 @@ struct ContentView: View {
 
             Divider()
 
-            // Under Add Folder, above Open at Login: the drive scan decides what the
-            // app picker can offer, so it reads with the other things that put apps
-            // into a folder rather than with the login item.
-            ExternalDrivesView()
-
-            Divider()
-
-            // Above Open at Login, so the footer of the sidebar stays the last
-            // thing in it.
-            UpdateCheckerView()
-
-            Divider()
-
-            SettingsView()
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
+            // Everything that is set once and left alone, folded under one header
+            // at the bottom: the drive scan, the update check and Open at Login.
+            SidebarSettingsView()
         }
         // No background of its own: imperator-dock-folder lets the window's own
         // dark ground through. controlBackgroundColor lifted the sidebar to a

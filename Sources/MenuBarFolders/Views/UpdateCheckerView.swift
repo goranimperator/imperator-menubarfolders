@@ -9,13 +9,13 @@ import SwiftUI
 /// main.swift forces the accent to the brand red, so a stock button's label would
 /// come out red where every other control in this column is grey.
 struct UpdateCheckerView: View {
-    private static let contentMargin: CGFloat = 20
-
     @State private var checker = UpdateChecker.shared
     @AppStorage(UpdateChecker.enabledKey) private var checkForUpdates = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // 3pt from the title to the line under it, the same as imperator-dock-folder's
+        // options.
+        VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 6) {
                 Text("Check for updates")
                     .font(.caption)
@@ -41,8 +41,6 @@ struct UpdateCheckerView: View {
                     .disabled(checker.status == .checking)
             }
         }
-        .padding(.horizontal, Self.contentMargin)
-        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         // Both directions: switching on checks if one is due, switching off
         // stops the hourly tick and clears an update row left by a check the

@@ -8,8 +8,6 @@ import SwiftUI
 /// unmount, because a drive's row is the only place its name appears and pulling the cable
 /// is exactly when that row goes away.
 struct ExternalDrivesView: View {
-    /// Matches the margin the Add Folder row and the sidebar rows below it use.
-    private static let contentMargin: CGFloat = 20
 
     @State private var scanEnabled = VolumeScanSettings.scanExternalDrives
     @State private var excluded = VolumeScanSettings.excludedVolumeNames
@@ -29,8 +27,6 @@ struct ExternalDrivesView: View {
                 }
             }
         }
-        .padding(.horizontal, Self.contentMargin)
-        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear(perform: reloadVolumes)
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
