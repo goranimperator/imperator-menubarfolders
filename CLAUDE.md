@@ -216,8 +216,9 @@ Key rules:
     dot while `UpdateChecker.available` is set
   - The spacing is imperator-dock-folder's, number for number, and the container owns it, not the
     rows: 10 above the header, 16 below it while open (10 shut), 12 between options, 12 under the
-    last, 20 at the edges, 3 from an option's title to the line under it. A row that pads itself
-    cannot be told apart from the gap between rows. The switch claims a 24pt box in layout whatever
+    last, 20 at the edges. Check for updates has two lines, and its status line sits the same 12
+    under the switch, not DockFolders' 3 between a title and its fine print, so the two read as two
+    rows of one list. A row that pads itself cannot be told apart from the gap between rows. The switch claims a 24pt box in layout whatever
     it draws, which made every gap look twice as big, so `BrandSwitch` with `bleed` also takes its
     layout height down to the drawn 13.2pt
   - No dividers between the rows: with one above and below each, every setting sat in its own

@@ -13,9 +13,11 @@ struct UpdateCheckerView: View {
     @AppStorage(UpdateChecker.enabledKey) private var checkForUpdates = true
 
     var body: some View {
-        // 3pt from the title to the line under it, the same as imperator-dock-folder's
-        // options.
-        VStack(alignment: .leading, spacing: 3) {
+        // The status line sits one row gap under the switch, the same 12pt as between
+        // any two options, so the two lines read as two rows of the same list. It was
+        // 3pt, imperator-dock-folder's title-to-fine-print gap, which made them look
+        // like one cramped row beside the evenly spaced ones around it.
+        VStack(alignment: .leading, spacing: SidebarSettingsView.rowGap) {
             HStack(spacing: 6) {
                 Text("Check for updates")
                     .font(.caption)
